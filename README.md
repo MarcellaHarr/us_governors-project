@@ -1,6 +1,6 @@
 # Governors of the United States
 
-![Photo by <a href="https://unsplash.com/@joey_csunyo?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Joey Csunyo</a> on <a href="https://unsplash.com/s/photos/us-map?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](src/usMap.jpg)
+![Photo by <a href="https://unsplash.com/@joey_csunyo?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Joey Csunyo</a> on <a href="https://unsplash.com/s/photos/us-map?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](US_Governors/src/usMap.jpg)
 
 This file introduces you to this EDA project on the governors in the United Sates of America. 
 I will work with a data set of all the United States Governors. I am seeking to get insight from 
