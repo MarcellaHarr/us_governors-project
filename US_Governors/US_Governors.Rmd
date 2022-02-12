@@ -542,22 +542,24 @@ fig1 <- ggplot(GovernorSeats,
                    y = Governors)) +
   xlab("Inauguration Order") +
   ylab("Governors") +
-  theme_minimal(base_size = 14)
+  theme_minimal(base_size = 9)
 
 fig1 +
   geom_point(aes(size = Governors,
                  color = as.factor(Governors)),
-             alpha = 0.9) +
+             alpha = 1/2) +
   geom_point(data = filter(GovernorSeats,
                            Governors == 91)) +
   annotate(geom = "text",
            x = 91, y = 1, label = "91 governors",
            hjust = "right") +
   scale_size_area(guide = "none",
-                  max_size = 15) +
+                  max_size = 10) +
+  ylim(0, 60) +
   scale_color_manual(name = "Governors",
                      values = political1) +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  ggtitle("Common Chair Order by Governor")
 ```
 
 #### answer
@@ -608,7 +610,7 @@ fig2 <- ggplot(GovernorTermDates,
                    y = MonthIn)) +
   xlab("Service Years") +
   ylab("") +
-  theme_minimal(base_size = 12)
+  theme_minimal(base_size = 9)
 
 
 fig2 +
@@ -621,10 +623,11 @@ fig2 +
            x = as.Date("1769-10-01"), y = "October",
            label = "earliest term", hjust = "left") +
   scale_size_area(guide = "none",
-                  max_size = 20) +
+                  max_size = 9.75) +
   scale_color_manual(name = "States",
                      values = political2) +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  ggtitle("U.S. Governor Entered Office")
 ```
 
 #### figure.2b
@@ -635,7 +638,7 @@ fig2b <- ggplot(GovernorTermDates,
                    y = MonthOut)) +
   xlab("Service Years") +
   ylab("") +
-  theme_minimal(base_size = 12)
+  theme_minimal(base_size = 9)
 
 
 fig2b +
@@ -650,10 +653,11 @@ fig2b +
            label = "lates term",
            hjust = "right") +
   scale_size_area(guide = "none",
-                  max_size = 20) +
+                  max_size = 11) +
   scale_color_manual(name = "States",
                      values = political2) +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  ggtitle("U.S. Governor Left Office")
 ```
 
 #### errors
@@ -706,21 +710,27 @@ GovInaugErrors
 
 #### answer
 
-The earliest inaugural date is October 1st, 1769 with approximately 763 weeks of service.
-
 ```{r qst2_answer}
 #.................. earliest .........................
 EarliestTerm <- GovernorTermDates[which.min(GovernorTermDates$Entered), "Term"]
-string2 <- "is the earliest inaugural date"
+string2 <- "is the earliest inaugural date with"
+ServedTot1 <- GovernorTermDates[which.min(GovernorTermDates$Entered), "ServTot"]
+string2b <- "weeks of service."
 
 EarliestTermAnswer <- paste(EarliestTerm$Term@start,
-                            string2, sep = " ")
+                            string2,
+                            ServedTot1,
+                            string2b, sep = " ")
 #.................. latest .........................
 LatestTerm <- GovernorTermDates[which.max(GovernorTermDates$Left), "Term"]
-string2b <- "is the latest inaugural date"
+string2c <- "is the latest inaugural date with"
+ServedTot2 <- GovernorTermDates[which.min(GovernorTermDates$Left), "ServTot"]
+string2d <- "weeks of service."
 
 LatestTermAnswer <- paste(LatestTerm$Term@start,
-                            string2b, sep = " ")
+                          string2c,
+                          ServedTot2,
+                          string2d, sep = " ")
 
 EarliestTermAnswer
 LatestTermAnswer
@@ -757,7 +767,7 @@ fig3 <- ggplot(PartyAffiliations,
                    y = Parties)) +
   xlab("") +
   ylab("Governors (count)") +
-  theme_minimal(base_size = 14) +
+  theme_minimal(base_size = 9) +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor = element_blank()) +
   theme(axis.text.x = element_text(angle = 45,
@@ -791,11 +801,11 @@ GovAffil
 political3b <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(34)
 #........... graph ................................
 fig3b <- ggplot(GovAffil,
-               aes(x = Governor,
-                   y = as.factor(Affiliation))) +
+               aes(x = as.factor(Affiliation),
+                   y = Governor)) +
   xlab("Governor (count)") +
-  ylab("Affilitions") +
-  theme_minimal(base_size = 14) +
+  ylab("Affiliations") +
+  theme_minimal(base_size = 11) +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor = element_blank()) +
   theme(axis.text.x = element_text(angle = 45,
@@ -858,8 +868,6 @@ RI_table;PA_table
 
 #### answer
 
-In fact, there are only 10 different affiliations.
-
 ```{r qst3_answer}
 string3a <- "There are"
 PAs <- n_distinct(PA$Affiliation)
@@ -908,36 +916,31 @@ fig4 <- ggplot(Governors,
                    y = x)) +
   xlab("States") +
   ylab("") +
-  theme_minimal(base_size = 13) +
+  theme_minimal() +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor = element_blank()) +
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1))
 
 fig4 +
-  geom_point(data = filter(Governors,
-                           Group.1 == "South Carolina"),
-             size = 0) +
   geom_point(size = Governors$x,
              shape = 21,
-             alpha = 0.95,
+             alpha = 2/4,
              aes(fill = Group.1)) +
+  scale_size_area(guide = "none",
+                  max_size = 10) +
   scale_fill_manual(values = political4) +
-  annotate(geom = "point",
-           x = "South Carolina", y = 91,
-           color = "#000066",
-           size = 88) +
-  ylim(6, 150) +
-  theme(legend.position = "none")
+  xlim(list=c(Governors$Group.1)) +
+  ylim(6, 350) +
+  theme(legend.position = "none") +
+  ggtitle("Total U.S. Governors by State")
 ```
 
 #### answer
 
-South Carolina has the most governors so far with 91 inaugurations.
-
 ```{r qst4_answer}
 Govs <- Governors[which.max(Governors$x), "Group.1"]
-string4a <- "has the most with"
+string4a <- "has the most governors served with"
 GovsNum <- Governors[which.max(Governors$x), "x"]
 string4b <- "governors"
 
@@ -971,13 +974,14 @@ fig5A <- ggplot(GovTerm,
                      y = ServTot)) +
   xlab("Term Years") +
   ylab("") +
-  theme_minimal(base_size = 13) +
+  theme_minimal(base_size = 10) +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor = element_blank())
   
 fig5A +
-  geom_line(size = 1, color = "#FC4E07") +
-  geom_point() +
+  geom_line(size = 1, color = "#F76D5E") +
+  geom_point(color = "#A50021",
+             alpha = 1/3) +
   theme(legend.position = "none") +
   ggtitle("U.S Governors Total Terms by Weeks")
 ```
@@ -1026,9 +1030,11 @@ fig6 <- ggplot(AffiliationPattern,
                      y = CountAffil)) +
   xlab("Political Affiliation Size By State") +
   ylab("Affiliation Count") +
-  theme_minimal(base_size = 13) +
+  theme_minimal(base_size = 11) +
   theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))
 
 fig6 +
   geom_point(aes(color = Affiliation,
@@ -1037,6 +1043,7 @@ fig6 +
   scale_size_area(guide = "none",
                   max_size = 11) +
   scale_color_manual(values = political6) +
+  scale_x_discrete(expand = c(0.045, 0.045)) +
   ylim(0, 75) +
   theme(legend.position = "none") +
   ggtitle("U.S Governors Party Affiliations")
@@ -1071,7 +1078,7 @@ fig6b <- ggplot(AffilMonthlyPattern,
                      y = CountAffil)) +
   xlab("") +
   ylab("Affiliation Count") +
-  theme_minimal(base_size = 13) +
+  theme_minimal(base_size = 11) +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor = element_blank()) +
   theme(axis.text.x = element_text(angle = 45,
@@ -1083,7 +1090,9 @@ fig6b +
                  size = CountAffil),
              alpha = 1/3) +
   scale_size_area() +
+  scale_x_discrete(expand = c(0.03, 0.03)) +
   scale_color_manual(values = political6) +
+  ylim(0, 65) +
   theme(legend.position = "none") +
   ggtitle("U.S Governors Monthly")
 ```
