@@ -75,6 +75,9 @@ library(lubridate)
 library(janitor)
 library(ggplot2)
 library(RColorBrewer)
+library(paletteer)
+library(ggthemes)
+library(ggThemeAssist)
 library(sessioninfo)
 ```
 <br/>
@@ -85,3 +88,1018 @@ library(sessioninfo)
 StateGovernors %>% 
   glimpse()
 ```
+
+```{r head}
+StateGovernors %>% 
+  head()
+```
+
+```{r NaNs}
+StateGovernors %>% 
+  select(everything()) %>% 
+  summarise_all(list(~sum(is.na(.) ) ) )
+```
+<br/>
+
+## TIDYING
+
+I am going to convert the `TookOffice` and `LeftOffice` columns to dates. Then I'll change `StateFull` and `GovernorName` to have _FullName_ added to the end for the new naming convention. In addition to, `GovernorNumber` will be renamed to `governor_seat_order` and columns will be lowercase and separated with an underscore.
+<br/>
+
+
+```{r new_df_variable}
+StateGov_df <- StateGovernors %>%
+  select(StateFull,
+         StateAbbrev,
+         GovernorNumber,
+         GovernorName,
+         TookOffice,
+         LeftOffice,
+         PartyAffiliation,
+         PartyAbbrev) %>%
+  rename(StateFullName = StateFull,
+         GovernorSeatOrder = GovernorNumber,
+         GovernorFullName = GovernorName) %>%
+  clean_names(., "snake")
+```
+
+```{r check_cols}
+#............. confirm ......................
+StateGov_df %>% 
+  colnames()
+```
+
+
+I see a few dates with November 31st but there are only 30 days in the month of November. This will cause this date and others, to result with an NA during the **as.Date** conversion. I did a _Google_ search for the governor that served this term to find their correct term dates. So far, it seems that November 31, 1835 should in fact be _November 21, 1835_. So, I will replace it before converting.
+
+
+```{r view_values}
+#....................................... view ....................................
+StateGov_df %>% 
+  select(governor_full_name,
+         took_office,
+         left_office)
+```
+
+```{r value_replace}
+#....................................... replace ....................................
+StateGov_df$took_office [StateGov_df$took_office == "November 31, 1835"] <- "November 21, 1835"
+StateGov_df$left_office [StateGov_df$left_office == "November 31, 1835"] <- "November 21, 1835"
+```
+
+
+I want to take the extra step in getting rid of any extra spaces because it too can cause issues during the conversion.
+
+```{r whitespaces}
+#............. trim & remove white spaces ......................
+StateGov_df %>% 
+  select(governor_full_name,
+         took_office,
+         left_office) %>%
+  mutate(took_office = str_squish(took_office),
+         left_office = str_squish(left_office))
+```
+
+
+```{r convert}
+#................ convert & save .............................
+StateGov_df %>%
+  mutate(took_office = as.Date(took_office,
+                               format = "%B %d, %Y"),
+         left_office = as.Date(left_office,
+                               format = "%B %d, %Y")) -> StateGov_df
+```
+
+```{r conversion_confirm}
+#................ view ........
+StateGov_df %>% 
+  select(governor_full_name,
+         took_office,
+         left_office) %>% 
+  head(n = 13)
+```
+
+Glad the columns converted successfully but there are now NAs.
+
+```{r conversion_NaNs}
+#................... NaNs ..............................
+StateGov_df %>% 
+  select(everything()) %>% 
+  summarise_all(list(~sum(is.na(.) ) ) )
+```
+
+```{r conversion_class, collapse=TRUE}
+#................... class .............................
+class(StateGov_df$took_office)
+class(StateGov_df$left_office)
+```
+
+<br/>
+
+## ...CONTINUED 
+
+There are 21 values in the `took_office` and `left_office` columns, that are resulting in NAs during the **as.Date** conversion. So I am going to see which rows are NAs at this stage. Afterwards, I'll then replace, convert, and save them again.
+<br/>
+
+```{r took_NAs, message=FALSE, warning=FALSE}
+#................... took office ..............................
+StateGov_df %>%
+  filter(is.na(took_office)) %>%
+  kbl() %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>%
+  column_spec(3, bold = T,
+              color = "#969292",
+              background = paletteer_c("ggthemes::Classic Blue", 21)) %>%
+  column_spec(5, bold = T,
+              color = "#969292",
+              background = paletteer_c("ggthemes::Classic Red", 21)) %>% 
+  row_spec(0, bold = TRUE) %>% 
+  row_spec(21,
+           background = "#EDF8B1") %>% 
+  scroll_box(height = "300px")
+```
+
+
+```{r left_NAs, message=FALSE, warning=FALSE}
+#................... left office ..............................
+StateGov_df %>%
+  filter(is.na(left_office)) %>%
+  kbl() %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>% 
+  column_spec(3, bold = T,
+              color = "#969292",
+              background = paletteer_c("ggthemes::Classic Blue", 21)) %>% 
+  column_spec(6, bold = T,
+              color = "#969292",
+              background = paletteer_c("ggthemes::Classic Red", 21)) %>%
+  row_spec(0, bold = TRUE) %>% 
+  row_spec(21,
+           background = "#EDF8B1") %>% 
+  scroll_box(height = "300px")
+```
+
+<br/>
+
+## REVISIT - _imported dataframe_
+
+I'm reviewing the original data set to find the 42 dates that are NAs, but this method lacks a condition or two because of the duplicate governor seat numbers. Also, this syntax results with a tibble of 46x8 and this warning:
+
+_GovernorNumber == c("11", "57", "62", "6", "24", "36", "73", : longer object length is not a multiple of shorter object length_.
+
+I'm not sure if or how this warning might impact the results but I'll continue exploring and fixing issues if or when they happen.  
+<br/>
+
+```{r original_df, warning=FALSE}
+#........................ NAs viewable in Kable table ...................... 
+StateGovernors %>%
+  filter(GovernorNumber == c("11", "57", "62", "6", "24", "36", "73", "44", "30", 
+                             "33", "18", "24", "43", "41", "67", "10", "1", "18", 
+                             "25", "12", "33", "46", "56", "61", "5", "23", "35",
+                             "72", "43", "29", "32", "23", "42", "40", "66", "9",
+                             "17", "24", "11", "32", "33")) %>%
+  select(everything()) %>% 
+  kbl() %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>% 
+  column_spec(3, bold = TRUE,
+              color = "#ffffff",
+              background = "#4F91B4") %>% 
+  row_spec(0, bold = TRUE) %>%
+  scroll_box(height = "300px")
+```
+
+<br/>
+
+## _copied dataframe_ DATE COLUMNS
+
+I've decided to do the `took_office` and `left_office` columns individually because placing the two inside the same condition of the **filter()** or even indexing with the **&** operator resulted with one row. Which is not how I want it to be displayed.
+<br/>
+
+```{r distinct_took, message=FALSE, warning=FALSE}
+#................... took office ..........................
+StateGov_df %>%
+  filter(is.na(took_office)) %>%
+  kbl() %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>% 
+  column_spec(3, bold = T,
+              color = "#969292",
+              background = paletteer_c("ggthemes::Classic Blue", 21)) %>%
+  column_spec(5, bold = T,
+              color = "#969292",
+              background = paletteer_c("ggthemes::Classic Red", 21)) %>%
+  row_spec(0, bold = TRUE) %>% 
+  row_spec(21,
+           background = "#EDF8B1") %>% 
+  scroll_box(height = "300px")
+```
+<br/>
+
+```{r distinct_left, message=FALSE, warning=FALSE}
+#.................... left office ....................
+StateGov_df %>%
+  filter(is.na(left_office)) %>%
+  kbl() %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>% 
+  column_spec(3, bold = T,
+              color = "#969292",
+              background = paletteer_c("ggthemes::Classic Blue", 21)) %>%
+  column_spec(6, bold = T,
+              color = "#969292",
+              background = paletteer_c("ggthemes::Classic Red", 21)) %>%
+  row_spec(0, bold = TRUE) %>% 
+  row_spec(21,
+           background = "#EDF8B1") %>% 
+  scroll_box(height = "300px")
+```
+<br/>
+
+## TIDYING REVISITED
+
+As I stated before, the previous syntax wasn't ideal. So I think adding an additional column to `GovernorNumber` should yield the results I want.
+
+I will also point out that some dates were written as **%B %y** (Month & year) instead of **%B %d, %y** (Month day, year) or they have invalid days like, _December 41, 1992_. There are different kinds of issues that resulted in NAs during the **as.Date** conversion, but I've highlighted a couple in the table below.
+<br/>
+
+```{r orgDF_NAs}
+#........................ NAs viewable in Kable table ......................
+StateGovernors %>%
+  filter(GovernorNumber %in% 
+           c("11", "57", "62", "6", "24", "36", "73", "44", "30", "33", "18", "24",
+             "43", "41", "67", "10", "1", "18", "25", "12", "33", "46", "56", "61",
+             "5", "23", "35", "72", "43", "29", "32", "17", "23", "42", "40", "66",
+             "9", "17", "24","11", "32", "33"
+             ),
+         GovernorName %in% 
+           c("Isaac Murphy", "Charles Layman Terry Jr.", "Dale Edward Wolf",
+             "David Wallace","Henry Clay Warmoth", "Alexander Hamilton Rice",
+             "Michael Stanley Dukakis", "William Grawn Milliken",
+             "Elmer Lee Andersen", "John Marshall Stone", "William Badger",
+             "George Franklin Fort", "Franklin Murphy", "Raymond Philip Shafer",
+             "Frank R. Licht", "Edward Rutledge", "Thomas Chittenden",
+             "John Dennis Spellman", "Cecil Harland Underwood",
+             "William Bradford Ross", "Mark Gordon", "Seth Gordon Persons",
+             "Elbert Nostrand Carvel", "Michael Newbold Castle", "Noah Noble",
+             "Joshua Gabriel Baker", "William Gaston", "Edward Joseph King",
+             "George Wilcken Romney", "Orville Lothrop Freeman", "Robert Lowry",
+             "Samuel Dinsmoor", "Daniel Haines", "Foster McGowan Voorhees",
+             "William Warren Scranton", "John Lester Hubbard Chafee",
+             "Charles Pinckney", "Dixy Lee Ray", "William Casey Marland",
+             "Robert Davis Carey", "Matthew Hansen Mead","Mark Gordon")
+         ) %>%
+  select(GovernorNumber, GovernorName, TookOffice, LeftOffice) %>%
+  kbl() %>% 
+  kable_classic("hover", "condensed", full_width = F, html_font = "Optima") %>%
+  row_spec(0, bold = TRUE) %>% 
+  row_spec(2, bold = TRUE, color = "white", background = "#800026") %>%
+  row_spec(8, bold = TRUE, color = "white", background = "#BD0026") %>%
+  row_spec(21, bold = TRUE, color = "white", background = "#253494") %>%
+  row_spec(43, bold = TRUE, color = "white", background = "#081D58") %>%
+  scroll_box(height = "300px")
+```
+
+Just re-reading in the data set and assigning it to a variable.
+
+```{r reread_DF}
+#........... rename & clean again ...................
+StateGov_df <- StateGovernors %>%
+  select(StateFull,
+         StateAbbrev,
+         GovernorNumber,
+         GovernorName,
+         TookOffice,
+         LeftOffice,
+         PartyAffiliation,
+         PartyAbbrev) %>%
+  rename(StateFullName = StateFull,
+         GovernorSeatOrder = GovernorNumber,
+         GovernorFullName = GovernorName) %>%
+  clean_names(., "snake")
+```
+
+I'm replacing the dates that are impacting the two date columns. I used _Nga.org_ to cross-reference. Dates with missing days will be searched for from their website and entered into my script. For all other date replacements, I will make sure to focus on misspellings and punctuations. I am also going to create another data frame that will show the errors before they're corrected and converted.
+
+```{r replace_NaNs}
+#........................... took office ..............................
+StateGov_df$took_office [StateGov_df$took_office == "November 31, 1835"] <- "November 21, 1835"
+StateGov_df$took_office [StateGov_df$took_office == "January 1864"] <- "April 18,1864"
+StateGov_df$took_office [StateGov_df$took_office == "December 41, 1992"] <- "December 31, 1992"
+StateGov_df$took_office [StateGov_df$took_office == "Juine 27, 1868"] <- "June 27, 1868"
+StateGov_df$took_office [StateGov_df$took_office == "January 1876"] <- "January 6, 1876"
+StateGov_df$took_office [StateGov_df$took_office == "October 1790"] <- "October 13, 1790"
+StateGov_df$took_office [StateGov_df$took_office == "Dedcember 6, 1837"] <- "December 6, 1837"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 22, 1969"] <- "January 22, 1969"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 2, 1961"] <- "January 2, 1961"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 21, 1851"] <- "January 21, 1851"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 21, 1902"] <- "January 21, 1902"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 17, 1967"] <- "January 17, 1967"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 7, 1969"] <- "January 7, 1969"
+StateGov_df$took_office [StateGov_df$took_office == "Dercember 18, 1798"] <- "December 18, 1798"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 14, 1981"] <- "January 14, 1981"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 1, 1923"] <- "January 1, 1923"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 7, 2019"] <- "January 7, 2019"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 14, 1957"] <- "January 14, 1957"
+StateGov_df$took_office [StateGov_df$took_office == "January 19 1965"] <- "January 19, 1957"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 6, 1983"] <- "January 6, 1983"
+StateGov_df$took_office [StateGov_df$took_office == "Janaury 13, 1890"] <- "January 13, 1890"
+StateGov_df$took_office [StateGov_df$took_office == "June 5 1834"] <- "June 5, 1834"
+#........................... left office ..............................
+StateGov_df$left_office [StateGov_df$left_office == "November 31, 1835"] <- "November 21, 1835"
+StateGov_df$left_office [StateGov_df$left_office == "Dedcember 6, 1837"] <- "December 6, 1837"
+StateGov_df$left_office [StateGov_df$left_office == "Juine 27, 1868"] <- "June 27, 1868"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 6, 1983"] <- "January 6, 1983"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 22, 1969"] <- "January 22, 1969"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 2, 1961"] <- "January 2, 1961"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 13, 1890"] <- "January 13, 1890"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 17, 1967"] <- "January 17, 1967"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 7, 1969"] <- "January 7, 1969"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 14, 1981"] <- "January 14, 1981"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 14, 1957"] <- "January 14, 1957"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 1, 1923"] <- "January 1, 1923"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 7, 2019"] <- "January 7, 2019"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 7, 2023"] <- "January 7, 2023"
+StateGov_df$left_office [StateGov_df$left_office == "January 1876"] <- "January 6, 1876"
+StateGov_df$left_office [StateGov_df$left_office == "January 17 1955"] <- "January 17, 1955"
+StateGov_df$left_office [StateGov_df$left_office == "January 19 1965"] <- "January 19, 1965"
+StateGov_df$left_office [StateGov_df$left_office == "December 41, 1992"] <- "December 31, 1992"
+StateGov_df$left_office [StateGov_df$left_office == "June 5 1834"] <- "June 5, 1834"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 21, 1851"] <- "January 21, 1851"
+StateGov_df$left_office [StateGov_df$left_office == "Janaury 21, 1902"] <- "January 21, 1902"
+StateGov_df$left_office [StateGov_df$left_office == "Dercember 18, 1798"] <- "December 18, 1798"
+#.............. additional dataframe .......................
+StateGovErrors_df <- StateGov_df
+```
+
+These are the dates that are being replaced because the data isn't accurate and results with negative calculations. 
+
+```{r replace_dates}
+#........................... took office ..............................
+StateGov_df$took_office [StateGov_df$took_office == "December 1, 2021"] <- "December 1, 1900"
+StateGov_df$took_office [StateGov_df$took_office == "November 7, 1927"] <- "November 7, 1827"
+StateGov_df$took_office [StateGov_df$took_office == "January 16, 1955"] <- "January 16, 1855"
+StateGov_df$took_office [StateGov_df$took_office == "October 1, 1949"] <- "October 1, 1849"
+StateGov_df$took_office [StateGov_df$took_office == "March 1, 1965"] <- "March 1, 1865"
+StateGov_df$took_office [StateGov_df$took_office == "January 14, 1947"] <- "January 14, 1943"
+StateGov_df$took_office [StateGov_df$took_office == "January 12, 1937"] <- "January 12, 1933"
+StateGov_df$took_office [StateGov_df$took_office == "January 12, 1943"] <- "January 12, 1933"
+StateGov_df$took_office [StateGov_df$took_office == "January 14, 1947"] <- "January 14, 1941"
+StateGov_df$took_office [StateGov_df$took_office == "January 14, 1943"] <- "January 14, 1941"
+#........................... left office ..............................
+StateGov_df$left_office [StateGov_df$left_office == "March 4, 1821"] <- "March 4, 1921"
+StateGov_df$left_office [StateGov_df$left_office == "January 18, 1838"] <- "January 18, 1938"
+StateGov_df$left_office [StateGov_df$left_office == "January 5, 1837"] <- "January 5, 1937"
+StateGov_df$left_office [StateGov_df$left_office == "January 14, 1941"] <- "January 14, 1937"
+StateGov_df$left_office [StateGov_df$left_office == "January 14, 1947"] <- "January 14, 1937"
+StateGov_df$left_office [StateGov_df$left_office == "January 14, 1947"] <- "January 14, 1943"
+StateGov_df$left_office [StateGov_df$left_office == "December 1, 1791"] <- "December 1, 1794"
+StateGov_df$left_office [StateGov_df$left_office == "January 14, 1937"] <- "January 14, 1947"
+StateGov_df$left_office [StateGov_df$left_office == "January 14, 1937"] <- "January 14, 1943"
+```
+
+
+```{r whitespaces_repeated}
+#............. trim & remove white spaces ......................
+StateGov_df %>% 
+  select(governor_full_name,
+         took_office,
+         left_office) %>%
+  mutate(took_office = str_squish(took_office),
+         left_office = str_squish(left_office))
+```
+
+No more NAs!
+
+```{r conversion2_confirm}
+#................... NAs ..............................
+StateGov_df %>% 
+  select(everything()) %>% 
+  summarise_all(list(~sum(is.na(.) ) ) )
+```
+
+
+```{r conversion2}
+#................ convert & save .............................
+StateGov_df %>%
+  mutate(took_office = as.Date(took_office,
+                               format = "%B %d, %Y"),
+         left_office = as.Date(left_office,
+                               format = "%B %d, %Y")) -> StateGov_df
+```
+
+<br/>
+
+## QUESTIONS:
+
+1. Show governors that share the same seat number.
+
+2. What is the earliest inaugural date?
+
+3. How many distinct `party_affiliations` are there?
+
+4. Which state has the most governors so far?
+
+5. Which governor had the shortest term served?
+
+6. What is the inaugural pattern for each state?
+<br/>
+
+## _Governors that share the same seat number_
+
+Chair is for the seat order or seat number and _Governors_ is for the governor's full name. 
+
+```{r qst1}
+GovernorSeats <- StateGov_df %>% 
+  group_by(Inauguration = governor_seat_order) %>% 
+  summarise(Governors = n_distinct(governor_full_name),
+            Governors = n(),
+            .groups = "rowwise") %>% 
+  ungroup()
+
+GovernorSeats
+```
+
+#### figure.1
+
+```{r fig1_plot, message=FALSE, warning=FALSE, out.width="100%"}
+#........... color palette ..................
+political1 <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(45)
+#........... graph ................................
+fig1 <- ggplot(GovernorSeats,
+               aes(x = Inauguration,
+                   y = Governors)) +
+  xlab("Inauguration Order") +
+  ylab("Governors") +
+  theme_minimal(base_size = 14)
+
+fig1 +
+  geom_point(aes(size = Governors,
+                 color = as.factor(Governors)),
+             alpha = 0.9) +
+  geom_point(data = filter(GovernorSeats,
+                           Governors == 91)) +
+  annotate(geom = "text",
+           x = 91, y = 1, label = "91 governors",
+           hjust = "right") +
+  scale_size_area(guide = "none",
+                  max_size = 15) +
+  scale_color_manual(name = "Governors",
+                     values = political1) +
+  theme(legend.position = "none")
+```
+
+#### answer
+
+It would make sense that the lower the seat number the highest amount of governors there'd be. However, in this case the highest chair _91_ only has one governor.
+
+
+<br/>
+
+## _What are the earliest and latest inaugural dates?_ 
+
+```{r qst2}
+GovernorTermDates <- StateGov_df %>%
+  group_by("Governor" = governor_full_name,
+           "States" = as.factor(state_abbrev),
+           "Entered" = took_office,
+           "Left" = left_office) %>%
+ summarise("Term" = Entered %--% Left,
+           "Served" = difftime(Left,
+                               Entered,
+                               units = c("weeks")),
+           "MonthIn" = format(as.Date(paste0(Entered),
+                                        format = "%Y-%m-%d"),
+                                "%B"),# full month name
+           "MonthOut" = format(as.Date(paste0(Left),
+                                        format = "%Y-%m-%d"),
+                                "%B"),
+           "MonthIn" = as.factor(MonthIn),
+           "MonthOut" = as.factor(MonthOut),
+           .groups = "keep") %>%
+  ungroup() %>%
+  arrange(Entered)
+
+#......... convert ..........
+GovernorTermDates$ServTot <- as.double(GovernorTermDates$Served)
+
+GovernorTermDates
+```
+
+#### figure.2
+
+```{r qst2_plot, message=FALSE, warning=FALSE, out.width="100%"}
+#........... color palette ..................
+political2 <- colorRampPalette(paletteer_c("ggthemes::Classic Blue", 30))(2587)
+#........... graph ................................
+fig2 <- ggplot(GovernorTermDates,
+               aes(x = Entered,
+                   y = MonthIn)) +
+  xlab("Service Years") +
+  ylab("") +
+  theme_minimal(base_size = 12)
+
+
+fig2 +
+  geom_point(aes(size = ServTot,
+                 color = as.factor(Governor)),
+             alpha = 0.55) +
+  geom_point(data = filter(GovernorTermDates,
+                           Entered == "1769-10-01")) +
+  annotate(geom = "text",
+           x = as.Date("1769-10-01"), y = "October",
+           label = "earliest term", hjust = "left") +
+  scale_size_area(guide = "none",
+                  max_size = 20) +
+  scale_color_manual(name = "States",
+                     values = political2) +
+  theme(legend.position = "none")
+```
+
+#### figure.2b
+
+```{r qst2b_plot, message=FALSE, warning=FALSE, out.width="100%"}
+fig2b <- ggplot(GovernorTermDates,
+               aes(x = Left,
+                   y = MonthOut)) +
+  xlab("Service Years") +
+  ylab("") +
+  theme_minimal(base_size = 12)
+
+
+fig2b +
+  geom_point(aes(size = ServTot,
+                 color = as.factor(Governor)),
+             alpha = 0.55) +
+  geom_point(data = filter(GovernorTermDates,
+                           Left == "2018-01-16")) +
+  annotate(geom = "text",
+           x = as.Date("2018-01-16"),
+           y = "January",
+           label = "lates term",
+           hjust = "right") +
+  scale_size_area(guide = "none",
+                  max_size = 20) +
+  scale_color_manual(name = "States",
+                     values = political2) +
+  theme(legend.position = "none")
+```
+
+#### errors
+
+As you can see there are negative served days and zero days, which might be correct but I'll know for sure once I cross-reference. Corrections will be made above under the, replace dates section, but I've add an extra syntax with the original data set to show these errors.
+
+```{r qst2_errors}
+#..... copy of original dataframe ...........................
+StateGovErrors_df %>%
+  select(governor_full_name,
+         took_office,
+         left_office) %>% 
+  mutate(took_office = str_squish(took_office),
+         left_office = str_squish(left_office),
+         took_office = as.Date(took_office,
+                               format = "%B %d, %Y"),
+         left_office = as.Date(left_office,
+                               format = "%B %d, %Y")) -> StateGovErrors_df
+
+#.............. table ........................
+GovInaugErrors <- StateGovErrors_df %>%
+  group_by("Governor" = as.factor(governor_full_name),
+           "Entered" = took_office,
+           "Left" = left_office) %>% 
+  summarise("Served" = difftime(
+              Left,
+              Entered,
+              units = c("days")),
+            .groups = "keep") %>%
+  ungroup() %>% 
+  arrange(Served) %>% 
+  kbl() %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>% 
+  row_spec(0, bold = TRUE) %>% 
+  row_spec(1, bold = TRUE, color = "white", background = "#F8BEB0") %>% 
+  row_spec(2, bold = TRUE, color = "white", background = "#F7B0A3") %>% 
+  row_spec(3, bold = TRUE, color = "white", background = "#F49489") %>% 
+  row_spec(4, bold = TRUE, color = "white", background = "#F17970") %>% 
+  row_spec(5, bold = TRUE, color = "white", background = "#ED5851") %>% 
+  row_spec(6, bold = TRUE, color = "white", background = "#EA332F") %>% 
+  row_spec(7, bold = TRUE, color = "white", background = "#E60D0C") %>% 
+  row_spec(8, bold = TRUE, color = "white", background = "#CB0002") %>% 
+  scroll_box(height = "300px")
+
+GovInaugErrors
+```
+
+#### answer
+
+The earliest inaugural date is October 1st, 1769 with approximately 763 weeks of service.
+
+```{r qst2_answer}
+#.................. earliest .........................
+EarliestTerm <- GovernorTermDates[which.min(GovernorTermDates$Entered), "Term"]
+string2 <- "is the earliest inaugural date"
+
+EarliestTermAnswer <- paste(EarliestTerm$Term@start,
+                            string2, sep = " ")
+#.................. latest .........................
+LatestTerm <- GovernorTermDates[which.max(GovernorTermDates$Left), "Term"]
+string2b <- "is the latest inaugural date"
+
+LatestTermAnswer <- paste(LatestTerm$Term@start,
+                            string2b, sep = " ")
+
+EarliestTermAnswer
+LatestTermAnswer
+```
+
+<br/>
+
+## _How many distinct party affiliations are there?_ 
+
+Rhode Island shows that they have 11 party affiliations for their state and North Carolina shows 10. 
+
+```{r qst3_table1}
+#........... create table ............................
+PartyAffiliations <- StateGov_df %>% 
+  group_by(State = state_full_name) %>% 
+  summarise(Parties = n_distinct(party_affiliation),
+            .groups = "rowwise") %>%
+  arrange(desc(Parties)) %>% 
+  mutate(Parties = as.numeric(Parties),
+         State = factor(State, State)) %>%
+  ungroup()
+
+PartyAffiliations
+```
+
+#### figure.3
+
+```{r qst3_fig3, message=FALSE, warning=FALSE, out.width="100%"}
+#........... color palette ..................
+political3 <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(50)
+#........... graph ................................
+fig3 <- ggplot(PartyAffiliations,
+               aes(x = as.factor(State),
+                   y = Parties)) +
+  xlab("") +
+  ylab("Governors (count)") +
+  theme_minimal(base_size = 14) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))
+
+fig3 +
+  geom_bar(stat = "identity",
+           color = political3, fill = "#C76c56", alpha = 0.85) +
+  ggtitle("U.S. Governor Party Affiliations by State")
+```
+
+As you can see there are a total of 10 rows for the party affiliation but previously Rhode Island came up with having 11.
+
+```{r qst3_table2}
+GovAffil <- StateGov_df %>%
+  group_by(Affiliation = party_affiliation) %>%
+  summarise(Governor = n_distinct(governor_full_name),
+            .groups = "rowwise") %>%
+  arrange(desc(Governor)) %>%
+  mutate(Governor = as.numeric(Governor),
+         Affiliation = factor(Affiliation, Affiliation)) %>% 
+  ungroup()
+
+GovAffil
+```
+
+#### figure.3b
+
+```{r qst_fig3b, message=FALSE, warning=FALSE, out.width="100%"}
+#........... color palette ..................
+political3b <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(34)
+#........... graph ................................
+fig3b <- ggplot(GovAffil,
+               aes(x = Governor,
+                   y = as.factor(Affiliation))) +
+  xlab("Governor (count)") +
+  ylab("Affilitions") +
+  theme_minimal(base_size = 14) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))
+
+fig3b +
+  geom_bar(stat = "identity",
+           color = political3b, fill = "#C76c56", alpha = 0.85) +
+  ggtitle("U.S. Governor Party Affiliation Totals")
+```
+
+#### party difference
+
+```{r qst3_Affiliations}
+#..... Rhode Island Affiliations .................
+RI <- StateGov_df %>%
+  filter(state_full_name == "Rhode Island") %>% 
+  group_by(Affiliation = party_affiliation) %>% 
+  summarise(Count = n_distinct(Affiliation)) %>% 
+  ungroup() 
+
+RI  
+#........ All Affiliations .......................
+PA <- StateGov_df %>%
+  filter(!party_affiliation == "Rhode Island") %>% 
+  group_by(Affiliation = party_affiliation) %>% 
+  summarise(Count = n_distinct(Affiliation)) %>% 
+  ungroup()
+
+PA
+```
+
+
+```{r qst3_Diagrams}
+#........... builds ..............
+RI_table <- RI %>%
+  kable("html", align = 'clc', caption = "Rhode Island Affiliations") %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima",
+                position = "float_left") %>%
+  row_spec(0, bold = TRUE) %>% 
+  row_spec(10,
+           color = "#ffffff",
+           background = "#cb181d")
+
+
+PA_table <- PA %>%
+  kable("html", align = 'clc', caption = "State Affiliations w/o R.I.") %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima",
+                position = "center") %>%
+  row_spec(0, bold = TRUE)
+#........... view .......................
+RI_table;PA_table
+```
+
+#### answer
+
+In fact, there are only 10 different affiliations.
+
+```{r qst3_answer}
+string3a <- "There are"
+PAs <- n_distinct(PA$Affiliation)
+string3b <- "distinct affiliations combined."
+string3c <- "Interestingly, Rhode Island has the most affiliations with"
+RIs <- sum(RI$Count)
+
+PAanswer <- paste(string3a,
+                  PAs,
+                  string3b,
+                  string3c,
+                  RIs, sep = " ")
+
+PAanswer
+```
+
+<br/>
+
+## _Which state has the most governors so far?_
+
+```{r qst4, message=FALSE, warning=FALSE}
+Governors <- aggregate(x = StateGov_df$governor_full_name,
+                  by = list(StateGov_df$state_full_name),
+                  FUN = length)
+
+Governors[ order(Governors$x) , ] -> Governors
+#......... table ............
+Governors %>% 
+  kbl(caption = "Governor Count By State") %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>% 
+  row_spec(0, bold = TRUE) %>% 
+  scroll_box(height = "250px")
+```
+
+#### figure.4
+
+```{r qst4_plot, message=FALSE, warning=FALSE, out.width="100%"}
+#............. color palette ..................
+political4 <- colorRampPalette(paletteer_c("ggthemes::Classic Blue", 30))(50)
+#.......... graph ...................
+fig4 <- ggplot(Governors,
+               aes(x = as.factor(Group.1),
+                   y = x)) +
+  xlab("States") +
+  ylab("") +
+  theme_minimal(base_size = 13) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))
+
+fig4 +
+  geom_point(data = filter(Governors,
+                           Group.1 == "South Carolina"),
+             size = 0) +
+  geom_point(size = Governors$x,
+             shape = 21,
+             alpha = 0.95,
+             aes(fill = Group.1)) +
+  scale_fill_manual(values = political4) +
+  annotate(geom = "point",
+           x = "South Carolina", y = 91,
+           color = "#000066",
+           size = 88) +
+  ylim(6, 150) +
+  theme(legend.position = "none")
+```
+
+#### answer
+
+South Carolina has the most governors so far with 91 inaugurations.
+
+```{r qst4_answer}
+Govs <- Governors[which.max(Governors$x), "Group.1"]
+string4a <- "has the most with"
+GovsNum <- Governors[which.max(Governors$x), "x"]
+string4b <- "governors"
+
+GovsAnswer <- paste(Govs,
+                    string4a,
+                    GovsNum,
+                    string4b, sep = " ")
+GovsAnswer
+```
+
+<br/>
+
+## _Which governor had the shortest term served?_
+
+```{r qst5}
+GovTerm <- GovernorTermDates %>% 
+  select(Governor, Term, ServTot) %>%
+  arrange(desc(ServTot))
+
+GovTerm
+```
+
+#### figure.5A
+
+```{r qst5A_plot, message=FALSE, warning=FALSE, out.width="100%"}
+#............. color palette ..................
+political5 <- colorRampPalette(paletteer_c("ggthemes::Classic Red", 30))(2416)
+#.......... graph ...................
+fig5A <- ggplot(GovTerm,
+                 aes(x = Term@start,
+                     y = ServTot)) +
+  xlab("Term Years") +
+  ylab("") +
+  theme_minimal(base_size = 13) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank())
+  
+fig5A +
+  geom_line(size = 1, color = "#FC4E07") +
+  geom_point() +
+  theme(legend.position = "none") +
+  ggtitle("U.S Governors Total Terms by Weeks")
+```
+
+#### answer
+
+```{r qst5_answer}
+#...... convert to character ..............
+GovernorTermDates$Governor <- as.character(GovernorTermDates$Governor)
+#......... answer .......................
+GovName <- GovernorTermDates[which.min(GovernorTermDates$Served), "Governor"]
+string5a <- "served"
+GovTerm <- GovernorTermDates[which.min(GovernorTermDates$Served), "ServTot"]
+string5b <- "days for the shortest term"
+ShortestTermAnswer <- paste(GovName,
+                            string5a,
+                            GovTerm,
+                            string5b, sep = " ")
+ShortestTermAnswer
+```
+
+<br/>
+
+## _What is the inaugural pattern for each state?_
+
+```{r qst6}
+AffiliationPattern <- StateGov_df %>%
+  group_by(State = state_full_name,
+           Affiliation = party_affiliation) %>% 
+  summarise(CountAffil = n(),
+            .groups = "rowwise") %>%
+  mutate(State = factor(State, State),
+         Affiliation = as.factor(Affiliation)) %>% 
+  arrange(desc(CountAffil)) %>% 
+  ungroup()
+```
+
+#### figure.6
+
+```{r qst6_plot, out.width="100%"}
+#............. color palette ..................
+political6 <- colorRampPalette(paletteer_c("ggthemes::Red-Blue-White Diverging", 30))(34)
+#.......... graph ...................
+fig6 <- ggplot(AffiliationPattern,
+                 aes(x = State,
+                     y = CountAffil)) +
+  xlab("Political Affiliation Size By State") +
+  ylab("Affiliation Count") +
+  theme_minimal(base_size = 13) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank())
+
+fig6 +
+  geom_point(aes(color = Affiliation,
+                 size = CountAffil),
+             alpha = 1/3) +
+  scale_size_area(guide = "none",
+                  max_size = 11) +
+  scale_color_manual(values = political6) +
+  ylim(0, 75) +
+  theme(legend.position = "none") +
+  ggtitle("U.S Governors Party Affiliations")
+```
+
+
+```{r qst6_Month}
+#.............. month table ...................................
+AffilMonthlyPattern <- AffiliationPattern %>% 
+  group_by(State, Affiliation, CountAffil) %>% 
+  summarise(MonthIn = format(as.Date(paste0(StateGov_df$took_office),
+                                     format = "%Y-%m-%d"),
+                             "%B"),   # Full month name
+            MonthOut = format(as.Date(paste0(StateGov_df$left_office),
+                                      format = "%Y-%m-%d"),
+                              "%B"),
+            Months = paste(MonthIn, "-", MonthOut),
+            .groups = "rowwise") %>% 
+  arrange() %>% 
+  ungroup()
+#................. remove duplicates .....................................
+AffilMonthlyPattern[!duplicated(AffilMonthlyPattern), ] -> AffilMonthlyPattern
+#................. factor .........................
+AffilMonthlyPattern$Months <- factor(AffilMonthlyPattern$Months)
+```
+
+#### figure.6b
+
+```{r qst6Month_plot, out.width="100%"}
+fig6b <- ggplot(AffilMonthlyPattern,
+                 aes(x = Affiliation,
+                     y = CountAffil)) +
+  xlab("") +
+  ylab("Affiliation Count") +
+  theme_minimal(base_size = 13) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))
+
+fig6b +
+  geom_boxplot() +
+  geom_point(aes(color = Affiliation,
+                 size = CountAffil),
+             alpha = 1/3) +
+  scale_size_area() +
+  scale_color_manual(values = political6) +
+  theme(legend.position = "none") +
+  ggtitle("U.S Governors Monthly")
+```
+
+#### answer
+
+```{r}
+
+```
+
+<br/>
+
+## ANALYSIS
+
+
+## SESSION INFO
+
+```{r session_info, collapse=TRUE}
+sessionInfo()
