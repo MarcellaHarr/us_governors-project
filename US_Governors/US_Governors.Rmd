@@ -840,7 +840,7 @@ PA
 
 
 ```{r qst3_Diagrams}
-#........... builds ..............
+#........... tables ..............
 RI_table <- RI %>%
   kable("html", align = 'clc', caption = "Rhode Island Affiliations") %>% 
   kable_classic("hover",
@@ -911,29 +911,48 @@ Governors %>%
 #............. color palette ..................
 political4 <- colorRampPalette(paletteer_c("ggthemes::Classic Blue", 30))(50)
 #.......... graph ...................
-fig4 <- ggplot(Governors,
-               aes(x = as.factor(Group.1),
-                   y = x)) +
-  xlab("States") +
-  ylab("") +
+fig4 <- ggplot(data = Governors,
+              aes(x = as.factor(Group.1),
+                  y = x)) +
+  geom_boxplot(aes(fill = Group.1)) +
+  geom_jitter(width = .1,
+              alpha = .5) +
   theme_minimal() +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor = element_blank()) +
   theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1))
-
-fig4 +
-  geom_point(size = Governors$x,
-             shape = 21,
-             alpha = 2/4,
-             aes(fill = Group.1)) +
-  scale_size_area(guide = "none",
-                  max_size = 10) +
-  scale_fill_manual(values = political4) +
-  xlim(list=c(Governors$Group.1)) +
-  ylim(6, 350) +
-  theme(legend.position = "none") +
+                                   hjust = 1),
+        legend.position = "none") +
+  xlab("States") +
+  ylab("") +
   ggtitle("Total U.S. Governors by State")
+
+fig4
+
+
+# fig4 <- ggplot(Governors,
+#                aes(x = as.factor(Group.1),
+#                    y = x)) +
+#   xlab("States") +
+#   ylab("") +
+#   theme_minimal() +
+#   theme(panel.grid.major.x = element_blank(),
+#         panel.grid.minor = element_blank()) +
+#   theme(axis.text.x = element_text(angle = 45,
+#                                    hjust = 1))
+
+# fig4 +
+#   geom_point(size = Governors$x,
+#              shape = 21,
+#              alpha = 2/4,
+#              aes(fill = Group.1)) +
+#   scale_size_area(guide = "none",
+#                   max_size = 10) +
+#   scale_fill_manual(values = political4) +
+#   xlim(list=c(Governors$Group.1)) +
+#   ylim(-2000, 2000) +
+#   theme(legend.position = "none") +
+#   ggtitle("Total U.S. Governors by State")
 ```
 
 #### answer
