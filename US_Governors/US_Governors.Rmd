@@ -936,6 +936,7 @@ fig4 <- Governors %>%
              color = "#0000CC",
              alpha = 0.5) +
   scale_fill_manual(values = political4) +
+  scale_y_discrete(guide = guide_axis(check.overlap = TRUE)) +
   theme_minimal() +
   ylab("") +
   theme(legend.position = "none",
