@@ -911,48 +911,39 @@ Governors %>%
 #............. color palette ..................
 political4 <- colorRampPalette(paletteer_c("ggthemes::Classic Blue", 30))(50)
 #.......... graph ...................
-fig4 <- ggplot(data = Governors,
-              aes(x = as.factor(Group.1),
-                  y = x)) +
-  geom_boxplot(aes(fill = Group.1)) +
-  geom_jitter(width = .1,
-              alpha = .5) +
+fig4 <- Governors %>% 
+  dplyr::select(Group.1, x) %>% 
+  dplyr::group_by(Group.1) %>% 
+  dplyr::mutate(Avrg = mean(Governors$x),
+                Min = min(Governors$x),
+                Max = max(Governors$x)) %>% 
+  dplyr::arrange(Avrg) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::mutate(States = factor(Group.1,
+                                levels = unique(Group.1))) %>% 
+  ggplot(aes(x = x, y = States)) +
+  geom_segment(aes(x = Min, xend = Max, yend = States),
+               alpha = 0.5, color = "white") +
+  geom_bar(aes(fill = States),
+           alpha = 0.75,
+           width = 0.2,
+           stat = "identity",
+           position = "dodge") +
+  geom_point(alpha = 0.4,
+             color = "black") +
+  geom_point(aes(x = Avrg),
+             size = 2,
+             color = "#0000CC",
+             alpha = 0.5) +
+  scale_fill_manual(values = political4) +
   theme_minimal() +
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank()) +
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1),
-        legend.position = "none") +
-  xlab("States") +
   ylab("") +
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
   ggtitle("Total U.S. Governors by State")
 
 fig4
-
-
-# fig4 <- ggplot(Governors,
-#                aes(x = as.factor(Group.1),
-#                    y = x)) +
-#   xlab("States") +
-#   ylab("") +
-#   theme_minimal() +
-#   theme(panel.grid.major.x = element_blank(),
-#         panel.grid.minor = element_blank()) +
-#   theme(axis.text.x = element_text(angle = 45,
-#                                    hjust = 1))
-
-# fig4 +
-#   geom_point(size = Governors$x,
-#              shape = 21,
-#              alpha = 2/4,
-#              aes(fill = Group.1)) +
-#   scale_size_area(guide = "none",
-#                   max_size = 10) +
-#   scale_fill_manual(values = political4) +
-#   xlim(list=c(Governors$Group.1)) +
-#   ylim(-2000, 2000) +
-#   theme(legend.position = "none") +
-#   ggtitle("Total U.S. Governors by State")
 ```
 
 #### answer
