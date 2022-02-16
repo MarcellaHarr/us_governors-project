@@ -77,7 +77,7 @@ library(ggplot2)
 library(RColorBrewer)
 library(paletteer)
 library(ggthemes)
-library(ggThemeAssist)
+library(ggridges)
 library(sessioninfo)
 ```
 <br/>
@@ -518,7 +518,7 @@ StateGov_df %>%
 
 ## _Governors that share the same seat number_
 
-Chair is for the seat order or seat number and _Governors_ is for the governor's full name. 
+Inauguration Order is for the seat numbers and _Governors_ is for the total governor count. 
 
 ```{r qst1}
 GovernorSeats <- StateGov_df %>% 
@@ -529,43 +529,47 @@ GovernorSeats <- StateGov_df %>%
   ungroup()
 
 GovernorSeats
+
+GovernorSeats %>% 
+  glimpse(nrow(91))
 ```
 
 #### figure.1
 
 ```{r fig1_plot, message=FALSE, warning=FALSE, out.width="100%"}
 #........... color palette ..................
-political1 <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(45)
+political1 <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(12)
 #........... graph ................................
-fig1 <- ggplot(GovernorSeats,
-               aes(x = Inauguration,
-                   y = Governors)) +
-  xlab("Inauguration Order") +
-  ylab("Governors") +
-  theme_minimal(base_size = 9)
+fig1 <- GovernorSeats %>% 
+  ggplot(aes(x = Inauguration, y = Governors)) +
+  geom_ribbon(aes(ymin = Governors - 5,
+                  ymax = Governors + 5),
+              fill = "#660000",
+              alpha = 0.95) +
+  geom_jitter(aes(color = "political1"),
+              width = 0.4,
+              size = 5.25,
+              alpha = 0.5) +
+  annotate("pointrange", x = 90.9, y = 1.5,
+           ymin = -9,
+           ymax = 20,
+           color = "black",
+           size = 1.5,
+           alpha = 0.85) +
+  xlab("Seat Numbers") +
+  ylab("Governor Count") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank()) +
+  ggtitle("Chairs Shared by Governors")
 
-fig1 +
-  geom_point(aes(size = Governors,
-                 color = as.factor(Governors)),
-             alpha = 1/2) +
-  geom_point(data = filter(GovernorSeats,
-                           Governors == 91)) +
-  annotate(geom = "text",
-           x = 91, y = 1, label = "91 governors",
-           hjust = "right") +
-  scale_size_area(guide = "none",
-                  max_size = 10) +
-  ylim(0, 60) +
-  scale_color_manual(name = "Governors",
-                     values = political1) +
-  theme(legend.position = "none") +
-  ggtitle("Common Chair Order by Governor")
+fig1
 ```
 
 #### answer
 
-It would make sense that the lower the seat number the highest amount of governors there'd be. However, in this case the highest chair _91_ only has one governor.
-
+It would make sense that the lower the seat number the higher the governor count would be. As in chair number _91_ having one governor served or serving.
 
 <br/>
 
