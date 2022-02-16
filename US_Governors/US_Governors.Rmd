@@ -501,6 +501,15 @@ StateGov_df %>%
 
 <br/>
 
+## WRITE FILE
+
+```{r write_file, include=FALSE, eval=FALSE}
+write.csv(StateGov_df,
+          "D://GitHUB//us_governors-project//US_Governors//docs//US-Governors.csv",
+          row.names = FALSE)
+```
+
+
 ## QUESTIONS:
 
 1. Show governors that share the same seat number.
@@ -529,41 +538,29 @@ GovernorSeats <- StateGov_df %>%
   ungroup()
 
 GovernorSeats
-
-GovernorSeats %>% 
-  glimpse(nrow(91))
 ```
 
 #### figure.1
 
 ```{r fig1_plot, message=FALSE, warning=FALSE, out.width="100%"}
-#........... color palette ..................
-political1 <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(12)
 #........... graph ................................
-fig1 <- GovernorSeats %>% 
-  ggplot(aes(x = Inauguration, y = Governors)) +
-  geom_ribbon(aes(ymin = Governors - 5,
-                  ymax = Governors + 5),
-              fill = "#660000",
-              alpha = 0.95) +
-  geom_jitter(aes(color = "political1"),
-              width = 0.4,
-              size = 5.25,
-              alpha = 0.5) +
-  annotate("pointrange", x = 90.9, y = 1.5,
-           ymin = -9,
-           ymax = 20,
-           color = "black",
-           size = 1.5,
-           alpha = 0.85) +
-  xlab("Seat Numbers") +
-  ylab("Governor Count") +
+fig1 <- ggplot(GovernorSeats,
+               aes(x = Inauguration, y = Governors,
+                   group = Governors,
+                   fill = "#f25449")) +
+  geom_density_ridges2(aes(point_fill = "black"),
+                      color = "#660000",
+                      rel_min_height = 0.07,
+                      jittered_points = TRUE,
+                      position = "raincloud",
+                      alpha = 0.7) +
+  xlab("chair numbers") +
+  ylab("governors") +
+  xlim(c(0, 91)) +
   theme_minimal() +
-  theme(legend.position = "none",
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank()) +
+  theme(legend.position = "none") +
   ggtitle("Chairs Shared by Governors")
-
+  
 fig1
 ```
 
