@@ -574,91 +574,53 @@ It would make sense that the lower the seat number the higher the governor count
 
 ```{r qst2}
 GovernorTermDates <- StateGov_df %>%
-  group_by("Governor" = governor_full_name,
-           "States" = as.factor(state_abbrev),
-           "Entered" = took_office,
-           "Left" = left_office) %>%
- summarise("Term" = Entered %--% Left,
-           "Served" = difftime(Left,
-                               Entered,
-                               units = c("weeks")),
-           "MonthIn" = format(as.Date(paste0(Entered),
-                                        format = "%Y-%m-%d"),
-                                "%B"),# full month name
-           "MonthOut" = format(as.Date(paste0(Left),
-                                        format = "%Y-%m-%d"),
-                                "%B"),
-           "MonthIn" = as.factor(MonthIn),
-           "MonthOut" = as.factor(MonthOut),
-           .groups = "keep") %>%
-  ungroup() %>%
-  arrange(Entered)
+  group_by(State = state_full_name) %>% 
+  summarise(Governor = governor_full_name,
+            Affiliation = party_affiliation,
+            Served = difftime(left_office,
+                              took_office,
+                              units = c("weeks")),
+            Entered = took_office,
+            Left = left_office,
+            .groups = "rowwise") %>%
+  mutate_at(vars(Entered, Left),
+            funs(year, month, day)) %>%
+  ungroup()
 
-#......... convert ..........
-GovernorTermDates$ServTot <- as.double(GovernorTermDates$Served)
-
+round(as.double(GovernorTermDates$Served),
+                digits = -0.0001) -> GovernorTermDates$Served
 GovernorTermDates
 ```
 
 #### figure.2
 
 ```{r qst2_plot, message=FALSE, warning=FALSE, out.width="100%"}
-#........... color palette ..................
-political2 <- colorRampPalette(paletteer_c("ggthemes::Classic Blue", 30))(2587)
 #........... graph ................................
 fig2 <- ggplot(GovernorTermDates,
-               aes(x = Entered,
-                   y = MonthIn)) +
+               aes(x = Entered_year,
+                   y = month.abb[Entered_month])) +
+  geom_jitter() +
   xlab("Service Years") +
   ylab("") +
-  theme_minimal(base_size = 9)
-
-
-fig2 +
-  geom_point(aes(size = ServTot,
-                 color = as.factor(Governor)),
-             alpha = 0.55) +
-  geom_point(data = filter(GovernorTermDates,
-                           Entered == "1769-10-01")) +
-  annotate(geom = "text",
-           x = as.Date("1769-10-01"), y = "October",
-           label = "earliest term", hjust = "left") +
-  scale_size_area(guide = "none",
-                  max_size = 9.75) +
-  scale_color_manual(name = "States",
-                     values = political2) +
-  theme(legend.position = "none") +
+  theme_minimal() +
   ggtitle("U.S. Governor Entered Office")
+
+fig2
 ```
 
 #### figure.2b
 
 ```{r qst2b_plot, message=FALSE, warning=FALSE, out.width="100%"}
 fig2b <- ggplot(GovernorTermDates,
-               aes(x = Left,
-                   y = MonthOut)) +
+               aes(x = Left_year,
+                   y = month.abb[Left_month])) +
+  geom_jitter() +
   xlab("Service Years") +
   ylab("") +
-  theme_minimal(base_size = 9)
-
-
-fig2b +
-  geom_point(aes(size = ServTot,
-                 color = as.factor(Governor)),
-             alpha = 0.55) +
-  geom_point(data = filter(GovernorTermDates,
-                           Left == "2018-01-16")) +
-  annotate(geom = "text",
-           x = as.Date("2018-01-16"),
-           y = "January",
-           label = "lates term",
-           hjust = "right") +
-  scale_size_area(guide = "none",
-                  max_size = 11) +
-  scale_color_manual(name = "States",
-                     values = political2) +
-  theme(legend.position = "none") +
+  theme_minimal() +
   ggtitle("U.S. Governor Left Office")
+
+fig2b
 ```
 
 #### errors
@@ -711,88 +673,87 @@ GovInaugErrors
 
 #### answer
 
-```{r qst2_answer}
-#.................. earliest .........................
-EarliestTerm <- GovernorTermDates[which.min(GovernorTermDates$Entered), "Term"]
-string2 <- "is the earliest inaugural date with"
-ServedTot1 <- GovernorTermDates[which.min(GovernorTermDates$Entered), "ServTot"]
-string2b <- "weeks of service."
-
-EarliestTermAnswer <- paste(EarliestTerm$Term@start,
-                            string2,
-                            ServedTot1,
-                            string2b, sep = " ")
-#.................. latest .........................
-LatestTerm <- GovernorTermDates[which.max(GovernorTermDates$Left), "Term"]
-string2c <- "is the latest inaugural date with"
-ServedTot2 <- GovernorTermDates[which.min(GovernorTermDates$Left), "ServTot"]
-string2d <- "weeks of service."
-
-LatestTermAnswer <- paste(LatestTerm$Term@start,
-                          string2c,
-                          ServedTot2,
-                          string2d, sep = " ")
-
-EarliestTermAnswer
-LatestTermAnswer
-```
+**January 10, 1769** is the earliest inaugural date and **January 16, 2018** is the latest inaugural date.
 
 <br/>
 
 ## _How many distinct party affiliations are there?_ 
 
-Rhode Island shows that they have 11 party affiliations for their state and North Carolina shows 10. 
-
-```{r qst3_table1}
-#........... create table ............................
-PartyAffiliations <- StateGov_df %>% 
-  group_by(State = state_full_name) %>% 
-  summarise(Parties = n_distinct(party_affiliation),
-            .groups = "rowwise") %>%
-  arrange(desc(Parties)) %>% 
-  mutate(Parties = as.numeric(Parties),
-         State = factor(State, State)) %>%
-  ungroup()
-
-PartyAffiliations
-```
+Rhode Island and Illinois shows a almost an even balance between the Republican and Democratic parties. 
 
 #### figure.3
 
 ```{r qst3_fig3, message=FALSE, warning=FALSE, out.width="100%"}
-#........... color palette ..................
-political3 <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(50)
 #........... graph ................................
-fig3 <- ggplot(PartyAffiliations,
-               aes(x = as.factor(State),
-                   y = Parties)) +
-  xlab("") +
-  ylab("Governors (count)") +
-  theme_minimal(base_size = 9) +
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank()) +
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1))
-
-fig3 +
-  geom_bar(stat = "identity",
-           color = political3, fill = "#C76c56", alpha = 0.85) +
+fig3 <- ggplot(GovernorTermDates,
+               aes(x = as.factor(Affiliation), y = as.factor(State),
+                   group = State,
+                   fill = "#C76c56")) +
+  geom_density_ridges2(aes(point_fill = "black"),
+                      color = "#660000",
+                      rel_min_height = 0.07,
+                      jittered_points = TRUE,
+                      position = "raincloud",
+                      alpha = 0.7) +
+  xlab("parties") +
+  ylab("") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45,
+                                     hjust = 1)) +
+  scale_y_discrete(guide = guide_axis(check.overlap = TRUE)) +
+  scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
   ggtitle("U.S. Governor Party Affiliations by State")
+  
+fig3
 ```
 
-As you can see there are a total of 10 rows for the party affiliation but previously Rhode Island came up with having 11.
+As you can see Rhode Island has 11 different party affiliations and Illinois has 6.
+
+```{r qst3_table1}
+StateAffil <- GovernorTermDates %>%
+  group_by(State) %>%
+  summarise(Affiliation = n_distinct(Affiliation),
+            .groups = "rowwise") %>%
+  arrange(desc(Affiliation)) %>%
+  mutate(Affiliation = as.numeric(Affiliation),
+         State = factor(State, State)) %>% 
+  ungroup()
+
+StateAffil %>% 
+  kbl(caption = "State Party Affiliations") %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>%
+  row_spec(0, bold = TRUE) %>% 
+  row_spec(1,
+           color = "#ffffff",
+           background = "#cb181d") %>% 
+  row_spec(13,
+           color = "#ffffff",
+           background = "#cb181d") %>% 
+  scroll_box(height = "250px")
+```
 
 ```{r qst3_table2}
-GovAffil <- StateGov_df %>%
-  group_by(Affiliation = party_affiliation) %>%
-  summarise(Governor = n_distinct(governor_full_name),
+GovAffil <- GovernorTermDates %>%
+  group_by(Affiliation) %>%
+  summarise(Governor = n_distinct(Governor),
             .groups = "rowwise") %>%
   arrange(desc(Governor)) %>%
   mutate(Governor = as.numeric(Governor),
          Affiliation = factor(Affiliation, Affiliation)) %>% 
   ungroup()
 
-GovAffil
+GovAffil %>% 
+  kbl(caption = "Governor Count By State") %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>% 
+  row_spec(0, bold = TRUE) %>% 
+  scroll_box(height = "250px")
 ```
 
 #### figure.3b
@@ -801,89 +762,29 @@ GovAffil
 #........... color palette ..................
 political3b <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(34)
 #........... graph ................................
-fig3b <- ggplot(GovAffil,
-               aes(x = as.factor(Affiliation),
-                   y = Governor)) +
-  xlab("Governor (count)") +
-  ylab("Affiliations") +
-  theme_minimal(base_size = 11) +
-  theme(panel.grid.major.x = element_blank(),
+fig3 <- ggplot(GovAffil,
+               aes(x = Affiliation,
+                   y = Governor,
+                   fill = as.factor(Governor),
+                   size = Governor)) +
+  geom_col(fill = political3b,
+           alpha = 0.5) +
+  xlab("Affiliation") +
+  ylab("Governors") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(),
         panel.grid.minor = element_blank()) +
   theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1))
-
-fig3b +
-  geom_bar(stat = "identity",
-           color = political3b, fill = "#C76c56", alpha = 0.85) +
+                                   hjust = 1)) +
   ggtitle("U.S. Governor Party Affiliation Totals")
-```
 
-#### party difference
-
-```{r qst3_Affiliations}
-#..... Rhode Island Affiliations .................
-RI <- StateGov_df %>%
-  filter(state_full_name == "Rhode Island") %>% 
-  group_by(Affiliation = party_affiliation) %>% 
-  summarise(Count = n_distinct(Affiliation)) %>% 
-  ungroup() 
-
-RI  
-#........ All Affiliations .......................
-PA <- StateGov_df %>%
-  filter(!party_affiliation == "Rhode Island") %>% 
-  group_by(Affiliation = party_affiliation) %>% 
-  summarise(Count = n_distinct(Affiliation)) %>% 
-  ungroup()
-
-PA
-```
-
-
-```{r qst3_Diagrams}
-#........... tables ..............
-RI_table <- RI %>%
-  kable("html", align = 'clc', caption = "Rhode Island Affiliations") %>% 
-  kable_classic("hover",
-                "condensed",
-                full_width = F,
-                html_font = "Optima",
-                position = "float_left") %>%
-  row_spec(0, bold = TRUE) %>% 
-  row_spec(10,
-           color = "#ffffff",
-           background = "#cb181d")
-
-
-PA_table <- PA %>%
-  kable("html", align = 'clc', caption = "State Affiliations w/o R.I.") %>% 
-  kable_classic("hover",
-                "condensed",
-                full_width = F,
-                html_font = "Optima",
-                position = "center") %>%
-  row_spec(0, bold = TRUE)
-#........... view .......................
-RI_table;PA_table
+fig3
 ```
 
 #### answer
 
-```{r qst3_answer}
-string3a <- "There are"
-PAs <- n_distinct(PA$Affiliation)
-string3b <- "distinct affiliations combined."
-string3c <- "Interestingly, Rhode Island has the most affiliations with"
-RIs <- sum(RI$Count)
-
-PAanswer <- paste(string3a,
-                  PAs,
-                  string3b,
-                  string3c,
-                  RIs, sep = " ")
-
-PAanswer
-```
+There are **34** distinct affiliations combined. Interestingly, `Rhode Island` has the most affiliations with **11**.
 
 <br/>
 
@@ -950,27 +851,18 @@ fig4
 
 #### answer
 
-```{r qst4_answer}
-Govs <- Governors[which.max(Governors$x), "Group.1"]
-string4a <- "has the most governors served with"
-GovsNum <- Governors[which.max(Governors$x), "x"]
-string4b <- "governors"
-
-GovsAnswer <- paste(Govs,
-                    string4a,
-                    GovsNum,
-                    string4b, sep = " ")
-GovsAnswer
-```
+`South Carolina` has the most governors served with **91** governors
 
 <br/>
 
 ## _Which governor had the shortest term served?_
 
 ```{r qst5}
+EarliestTerm <- GovernorTermDates[which.min(GovernorTermDates$Entered), "Governor"]
+
 GovTerm <- GovernorTermDates %>% 
-  select(Governor, Term, ServTot) %>%
-  arrange(desc(ServTot))
+  select(Governor, Entered, Left) %>%
+  arrange(Entered)
 
 GovTerm
 ```
@@ -979,40 +871,40 @@ GovTerm
 
 ```{r qst5A_plot, message=FALSE, warning=FALSE, out.width="100%"}
 #............. color palette ..................
-political5 <- colorRampPalette(paletteer_c("ggthemes::Classic Red", 30))(2416)
+# political5 <- colorRampPalette(paletteer_c("ggthemes::Classic Red", 30))(2587)
 #.......... graph ...................
-fig5A <- ggplot(GovTerm,
-                 aes(x = Term@start,
-                     y = ServTot)) +
-  xlab("Term Years") +
-  ylab("") +
-  theme_minimal(base_size = 10) +
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank())
-  
-fig5A +
-  geom_line(size = 1, color = "#F76D5E") +
-  geom_point(color = "#A50021",
-             alpha = 1/3) +
-  theme(legend.position = "none") +
-  ggtitle("U.S Governors Total Terms by Weeks")
+# fig5A <- ggplot(GovTerm,
+#                  aes(x = Term@start,
+#                      y = ServTot)) +
+#   xlab("Term Years") +
+#   ylab("") +
+#   theme_minimal(base_size = 10) +
+#   theme(panel.grid.major.x = element_blank(),
+#         panel.grid.minor = element_blank())
+#   
+# fig5A +
+#   geom_line(size = 1, color = "#F76D5E") +
+#   geom_point(color = "#A50021",
+#              alpha = 1/3) +
+#   theme(legend.position = "none") +
+#   ggtitle("U.S Governors Total Terms by Weeks")
 ```
 
 #### answer
 
 ```{r qst5_answer}
 #...... convert to character ..............
-GovernorTermDates$Governor <- as.character(GovernorTermDates$Governor)
+# GovernorTermDates$Governor <- as.character(GovernorTermDates$Governor)
 #......... answer .......................
-GovName <- GovernorTermDates[which.min(GovernorTermDates$Served), "Governor"]
-string5a <- "served"
-GovTerm <- GovernorTermDates[which.min(GovernorTermDates$Served), "ServTot"]
-string5b <- "days for the shortest term"
-ShortestTermAnswer <- paste(GovName,
-                            string5a,
-                            GovTerm,
-                            string5b, sep = " ")
-ShortestTermAnswer
+# GovName <- GovernorTermDates[which.min(GovernorTermDates$Served), "Governor"]
+# string5a <- "served"
+# GovTerm <- GovernorTermDates[which.min(GovernorTermDates$Served), "ServTot"]
+# string5b <- "days for the shortest term"
+# ShortestTermAnswer <- paste(GovName,
+#                             string5a,
+#                             GovTerm,
+#                             string5b, sep = " ")
+# ShortestTermAnswer
 ```
 
 <br/>
@@ -1020,93 +912,93 @@ ShortestTermAnswer
 ## _What is the inaugural pattern for each state?_
 
 ```{r qst6}
-AffiliationPattern <- StateGov_df %>%
-  group_by(State = state_full_name,
-           Affiliation = party_affiliation) %>% 
-  summarise(CountAffil = n(),
-            .groups = "rowwise") %>%
-  mutate(State = factor(State, State),
-         Affiliation = as.factor(Affiliation)) %>% 
-  arrange(desc(CountAffil)) %>% 
-  ungroup()
+# AffiliationPattern <- StateGov_df %>%
+#   group_by(State = state_full_name,
+#            Affiliation = party_affiliation) %>% 
+#   summarise(CountAffil = n(),
+#             .groups = "rowwise") %>%
+#   mutate(State = factor(State, State),
+#          Affiliation = as.factor(Affiliation)) %>% 
+#   arrange(desc(CountAffil)) %>% 
+#   ungroup()
 ```
 
 #### figure.6
 
 ```{r qst6_plot, out.width="100%"}
 #............. color palette ..................
-political6 <- colorRampPalette(paletteer_c("ggthemes::Red-Blue-White Diverging", 30))(34)
+# political6 <- colorRampPalette(paletteer_c("ggthemes::Red-Blue-White Diverging", 30))(34)
 #.......... graph ...................
-fig6 <- ggplot(AffiliationPattern,
-                 aes(x = State,
-                     y = CountAffil)) +
-  xlab("Political Affiliation Size By State") +
-  ylab("Affiliation Count") +
-  theme_minimal(base_size = 11) +
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank()) +
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1))
-
-fig6 +
-  geom_point(aes(color = Affiliation,
-                 size = CountAffil),
-             alpha = 1/3) +
-  scale_size_area(guide = "none",
-                  max_size = 11) +
-  scale_color_manual(values = political6) +
-  scale_x_discrete(expand = c(0.045, 0.045)) +
-  ylim(0, 75) +
-  theme(legend.position = "none") +
-  ggtitle("U.S Governors Party Affiliations")
+# fig6 <- ggplot(AffiliationPattern,
+#                  aes(x = State,
+#                      y = CountAffil)) +
+#   xlab("Political Affiliation Size By State") +
+#   ylab("Affiliation Count") +
+#   theme_minimal(base_size = 11) +
+#   theme(panel.grid.major.x = element_blank(),
+#         panel.grid.minor = element_blank()) +
+#   theme(axis.text.x = element_text(angle = 45,
+#                                    hjust = 1))
+# 
+# fig6 +
+#   geom_point(aes(color = Affiliation,
+#                  size = CountAffil),
+#              alpha = 1/3) +
+#   scale_size_area(guide = "none",
+#                   max_size = 11) +
+#   scale_color_manual(values = political6) +
+#   scale_x_discrete(expand = c(0.045, 0.045)) +
+#   ylim(0, 75) +
+#   theme(legend.position = "none") +
+#   ggtitle("U.S Governors Party Affiliations")
 ```
 
 
 ```{r qst6_Month}
 #.............. month table ...................................
-AffilMonthlyPattern <- AffiliationPattern %>% 
-  group_by(State, Affiliation, CountAffil) %>% 
-  summarise(MonthIn = format(as.Date(paste0(StateGov_df$took_office),
-                                     format = "%Y-%m-%d"),
-                             "%B"),   # Full month name
-            MonthOut = format(as.Date(paste0(StateGov_df$left_office),
-                                      format = "%Y-%m-%d"),
-                              "%B"),
-            Months = paste(MonthIn, "-", MonthOut),
-            .groups = "rowwise") %>% 
-  arrange() %>% 
-  ungroup()
+# AffilMonthlyPattern <- AffiliationPattern %>% 
+#   group_by(State, Affiliation, CountAffil) %>% 
+#   summarise(MonthIn = format(as.Date(paste0(StateGov_df$took_office),
+#                                      format = "%Y-%m-%d"),
+#                              "%B"),   # Full month name
+#             MonthOut = format(as.Date(paste0(StateGov_df$left_office),
+#                                       format = "%Y-%m-%d"),
+#                               "%B"),
+#             Months = paste(MonthIn, "-", MonthOut),
+#             .groups = "rowwise") %>% 
+#   arrange() %>% 
+#   ungroup()
 #................. remove duplicates .....................................
-AffilMonthlyPattern[!duplicated(AffilMonthlyPattern), ] -> AffilMonthlyPattern
+# AffilMonthlyPattern[!duplicated(AffilMonthlyPattern), ] -> AffilMonthlyPattern
 #................. factor .........................
-AffilMonthlyPattern$Months <- factor(AffilMonthlyPattern$Months)
+# AffilMonthlyPattern$Months <- factor(AffilMonthlyPattern$Months)
 ```
 
 #### figure.6b
 
 ```{r qst6Month_plot, out.width="100%"}
-fig6b <- ggplot(AffilMonthlyPattern,
-                 aes(x = Affiliation,
-                     y = CountAffil)) +
-  xlab("") +
-  ylab("Affiliation Count") +
-  theme_minimal(base_size = 11) +
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank()) +
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1))
-
-fig6b +
-  geom_boxplot() +
-  geom_point(aes(color = Affiliation,
-                 size = CountAffil),
-             alpha = 1/3) +
-  scale_size_area() +
-  scale_x_discrete(expand = c(0.03, 0.03)) +
-  scale_color_manual(values = political6) +
-  ylim(0, 65) +
-  theme(legend.position = "none") +
-  ggtitle("U.S Governors Monthly")
+# fig6b <- ggplot(AffilMonthlyPattern,
+#                  aes(x = Affiliation,
+#                      y = CountAffil)) +
+#   xlab("") +
+#   ylab("Affiliation Count") +
+#   theme_minimal(base_size = 11) +
+#   theme(panel.grid.major.x = element_blank(),
+#         panel.grid.minor = element_blank()) +
+#   theme(axis.text.x = element_text(angle = 45,
+#                                    hjust = 1))
+# 
+# fig6b +
+#   geom_boxplot() +
+#   geom_point(aes(color = Affiliation,
+#                  size = CountAffil),
+#              alpha = 1/3) +
+#   scale_size_area() +
+#   scale_x_discrete(expand = c(0.03, 0.03)) +
+#   scale_color_manual(values = political6) +
+#   ylim(0, 65) +
+#   theme(legend.position = "none") +
+#   ggtitle("U.S Governors Monthly")
 ```
 
 #### answer
