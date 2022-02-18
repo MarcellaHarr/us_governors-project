@@ -537,7 +537,14 @@ GovernorSeats <- StateGov_df %>%
             .groups = "rowwise") %>% 
   ungroup()
 
-GovernorSeats
+GovernorSeats %>% 
+  kbl(caption = "Governor Seats ") %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>%
+  row_spec(0, bold = TRUE) %>% 
+  scroll_box(height = "300px")
 ```
 
 #### figure.1
@@ -580,26 +587,63 @@ GovernorTermDates <- StateGov_df %>%
             Served = difftime(left_office,
                               took_office,
                               units = c("weeks")),
-            Entered = took_office,
-            Left = left_office,
+            Sworn_In = took_office,
+            Left_Office = left_office,
             .groups = "rowwise") %>%
-  mutate_at(vars(Entered, Left),
-            funs(year, month, day)) %>%
-  ungroup()
+  mutate_at(vars(Sworn_In, Left_Office),
+            list(year, month, day)) %>%
+  ungroup() %>% 
+  arrange(Sworn_In)
 
 round(as.double(GovernorTermDates$Served),
                 digits = -0.0001) -> GovernorTermDates$Served
-GovernorTermDates
+```
+
+<br/>
+
+#### view/rename/save new variables
+
+```{r rename_vars}
+#........... view ................................
+GovernorTermDates %>% 
+  colnames()
+#........... rename & save ................................
+GovernorTermDates %>% 
+  select(State, Governor, Affiliation, Served,
+         Sworn_In, Left_Office, Sworn_In_fn1, Left_Office_fn1,
+         Sworn_In_fn2, Left_Office_fn2,
+         Sworn_In_fn3, Left_Office_fn3) %>% 
+  rename(Sworn_In_Year = "Sworn_In_fn1",
+         Left_Office_Year = "Left_Office_fn1",
+         Sworn_In_Month = "Sworn_In_fn2",
+         Left_Office_Month = "Left_Office_fn2",
+         Sworn_In_Day = "Sworn_In_fn3",
+         Left_Office_Day = "Left_Office_fn3") -> GovernorTermDates
+
+GovernorTermDates %>% 
+  kbl(caption = "Governor Term Details") %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>%
+  row_spec(0, bold = TRUE) %>% 
+  scroll_box(height = "300px")
 ```
 
 #### figure.2
 
 ```{r qst2_plot, message=FALSE, warning=FALSE, out.width="100%"}
+politicalBlues <- colorRampPalette(brewer.pal(9, "Blues"))(2587)
 #........... graph ................................
 fig2 <- ggplot(GovernorTermDates,
-               aes(x = Entered_year,
-                   y = month.abb[Entered_month])) +
-  geom_jitter() +
+               aes(x = Sworn_In_Year,
+                   y = month.abb[Sworn_In_Month])) +
+  geom_jitter(color = "darkblue",
+              size = 4,
+              alpha = 0.5) +
+  scale_fill_manual(values = politicalBlues) +
+  geom_boxplot(alpha = 0.65,
+               outlier.color = "red") +
   xlab("Service Years") +
   ylab("") +
   theme_minimal() +
@@ -612,9 +656,14 @@ fig2
 
 ```{r qst2b_plot, message=FALSE, warning=FALSE, out.width="100%"}
 fig2b <- ggplot(GovernorTermDates,
-               aes(x = Left_year,
-                   y = month.abb[Left_month])) +
-  geom_jitter() +
+               aes(x = Left_Office_Year,
+                   y = month.abb[Left_Office_Month])) +
+  geom_jitter(color = "darkblue",
+              size = 4,
+              alpha = 0.5) +
+  scale_fill_manual(values = politicalBlues) +
+  geom_boxplot(alpha = 0.65,
+               outlier.color = "red") +
   xlab("Service Years") +
   ylab("") +
   theme_minimal() +
@@ -625,7 +674,7 @@ fig2b
 
 #### errors
 
-As you can see there are negative served days and zero days, which might be correct but I'll know for sure once I cross-reference. Corrections will be made above under the, replace dates section, but I've add an extra syntax with the original data set to show these errors.
+As you can see there are negative served days which was corrected above under the, replace dates section, but I've add an extra syntax with the original data set to show these errors.
 
 ```{r qst2_errors}
 #..... copy of original dataframe ...........................
@@ -673,13 +722,13 @@ GovInaugErrors
 
 #### answer
 
-**January 10, 1769** is the earliest inaugural date and **January 16, 2018** is the latest inaugural date.
+**January 10, 1769** is the earliest inaugural date and **January 15, 2022** is the latest inaugural date.
 
 <br/>
 
 ## _How many distinct party affiliations are there?_ 
 
-Rhode Island and Illinois shows a almost an even balance between the Republican and Democratic parties. 
+Rhode Island and Illinois shows an almost even balance between the Republican and Democratic parties. 
 
 #### figure.3
 
@@ -707,6 +756,7 @@ fig3 <- ggplot(GovernorTermDates,
   
 fig3
 ```
+<br/>
 
 As you can see Rhode Island has 11 different party affiliations and Illinois has 6.
 
@@ -721,7 +771,7 @@ StateAffil <- GovernorTermDates %>%
   ungroup()
 
 StateAffil %>% 
-  kbl(caption = "State Party Affiliations") %>% 
+  kbl(caption = "Party Count By State") %>% 
   kable_classic("hover",
                 "condensed",
                 full_width = F,
@@ -733,7 +783,7 @@ StateAffil %>%
   row_spec(13,
            color = "#ffffff",
            background = "#cb181d") %>% 
-  scroll_box(height = "250px")
+  scroll_box(height = "300px")
 ```
 
 ```{r qst3_table2}
@@ -747,13 +797,19 @@ GovAffil <- GovernorTermDates %>%
   ungroup()
 
 GovAffil %>% 
-  kbl(caption = "Governor Count By State") %>% 
+  kbl(caption = "Governor Count By Party") %>% 
   kable_classic("hover",
                 "condensed",
                 full_width = F,
                 html_font = "Optima") %>% 
-  row_spec(0, bold = TRUE) %>% 
-  scroll_box(height = "250px")
+  row_spec(0, bold = TRUE) %>%
+  row_spec(1,
+           color = "#ffffff",
+           background = "#cb181d") %>% 
+  row_spec(2,
+           color = "#ffffff",
+           background = "#f0565b") %>%
+  scroll_box(height = "300px")
 ```
 
 #### figure.3b
@@ -762,7 +818,7 @@ GovAffil %>%
 #........... color palette ..................
 political3b <- colorRampPalette(paletteer_c("grDevices::Reds 3", 30))(34)
 #........... graph ................................
-fig3 <- ggplot(GovAffil,
+fig3b <- ggplot(GovAffil,
                aes(x = Affiliation,
                    y = Governor,
                    fill = as.factor(Governor),
@@ -779,7 +835,7 @@ fig3 <- ggplot(GovAffil,
                                    hjust = 1)) +
   ggtitle("U.S. Governor Party Affiliation Totals")
 
-fig3
+fig3b
 ```
 
 #### answer
@@ -858,13 +914,13 @@ fig4
 ## _Which governor had the shortest term served?_
 
 ```{r qst5}
-EarliestTerm <- GovernorTermDates[which.min(GovernorTermDates$Entered), "Governor"]
-
-GovTerm <- GovernorTermDates %>% 
-  select(Governor, Entered, Left) %>%
-  arrange(Entered)
-
-GovTerm
+# EarliestTerm <- GovernorTermDates[which.min(GovernorTermDates$Entered), "Governor"]
+# 
+# GovTerm <- GovernorTermDates %>% 
+#   select(Governor, Entered, Left) %>%
+#   arrange(Entered)
+# 
+# GovTerm
 ```
 
 #### figure.5A
