@@ -26,7 +26,7 @@ This data set is owned by Brandon Conrady on _Kaggle_ and it was last updated on
 open to the public and its license is _CC0: Public Domain_. You can view more about the data set and
 Brandon's work here: _https://www.kaggle.com/brandonconrady_.
 
-I welcome you to visit the EDA at: [U.S.A Governors Project](https://htmlpreview.github.io/?https://github.com/MarcellaHarr/us_governors-project/blob/05eab5fb69ba111ca10a4b8403c7cf2756bab1e9/US_Governors/US_Governors.html)
+I welcome you to visit the EDA at: [U.S.A Governors Project](https://marcellaharr.github.io/us_governors-project/US_Governors/US_Governors.html)
 
 To see more of my work, please visit my portfolio at: [Data-Folio](https://marcellaharr.github.io/portfolio/).
 
