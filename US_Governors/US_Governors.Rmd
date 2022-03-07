@@ -65,22 +65,22 @@ Brandon's work here:_https://www.kaggle.com/brandonconrady_.
 
 ##### LIBRARY DECLARATIONS
 
-- library(tidyverse)
-  library(tidyr)
-  library(stringr)
-  library(knitr)
-  library(glue)
-  library(kableExtra)
-  library(gt)
-  library(lubridate)
-  library(janitor)
-  library(ggplot2)
-  library(RColorBrewer)
-  library(paletteer)
-  library(ggthemes)
-  library(ggridges)
-  library(gridExtra)
-- library(sessioninfo)
+    - library(tidyverse)
+      library(tidyr)
+      library(stringr)
+      library(knitr)
+      library(glue)
+      library(kableExtra)
+      library(gt)
+      library(lubridate)
+      library(janitor)
+      library(ggplot2)
+      library(RColorBrewer)
+      library(paletteer)
+      library(ggthemes)
+      library(ggridges)
+      library(gridExtra)
+    - library(sessioninfo)
 <br/>
 
 ##### DATA SET
@@ -122,32 +122,25 @@ StateGov_df <- StateGovernors %>%
          GovernorSeatOrder = GovernorNumber,
          GovernorFullName = GovernorName) %>%
   clean_names(., "snake")
-```
-
-```{r check_cols}
 #............. confirm ......................
 StateGov_df %>% 
   colnames()
 ```
+<br/>
+
+I see a few dates that need to be corrected such as on `line #8` having November 31st when in actuality there are only 30 days in the month of November. This will cause this date and others, to result with an NA during the **as.Date** conversion. I did a _Google_ search for the governor that served this term to find their correct term dates. So far, it seems that November 31, 1835 should in fact be _November 21, 1835_. So, I will replace it before converting.
 
 
-I see a few dates with November 31st but there are only 30 days in the month of November. This will cause this date and others, to result with an NA during the **as.Date** conversion. I did a _Google_ search for the governor that served this term to find their correct term dates. So far, it seems that November 31, 1835 should in fact be _November 21, 1835_. So, I will replace it before converting.
-
-
-```{r view_values}
+```{r view_values, collapse=TRUE}
 #....................................... view ....................................
 StateGov_df %>% 
   select(governor_full_name,
          took_office,
          left_office)
-```
-
-```{r value_replace}
 #....................................... replace ....................................
 StateGov_df$took_office [StateGov_df$took_office == "November 31, 1835"] <- "November 21, 1835"
 StateGov_df$left_office [StateGov_df$left_office == "November 31, 1835"] <- "November 21, 1835"
 ```
-
 
 I want to take the extra step in getting rid of any extra spaces because it too can cause issues during the conversion.
 
@@ -169,32 +162,26 @@ StateGov_df %>%
                                format = "%B %d, %Y"),
          left_office = as.Date(left_office,
                                format = "%B %d, %Y")) -> StateGov_df
-```
-
-```{r conversion_confirm}
 #................ view ........
 StateGov_df %>% 
   select(governor_full_name,
          took_office,
          left_office) %>% 
-  head(n = 13)
+  head(n = 3)
 ```
+<br/>
 
 Glad the columns converted successfully but there are now NAs.
 
-```{r conversion_NaNs}
+```{r conversion_NaNs, collapse=TRUE}
 #................... NaNs ..............................
 StateGov_df %>% 
   select(everything()) %>% 
   summarise_all(list(~sum(is.na(.) ) ) )
-```
-
-```{r conversion_class, collapse=TRUE}
 #................... class .............................
 class(StateGov_df$took_office)
 class(StateGov_df$left_office)
 ```
-
 <br/>
 
 ## ...CONTINUED 
@@ -595,7 +582,7 @@ fig1 <- ggplot(GovernorSeats,
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
   ggtitle("Chairs Shared by Governors")
-  
+
 fig1
 ```
 <br/>
@@ -809,18 +796,22 @@ StateAffilSubset <- c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 #........... graph ................................
 fig3 <- ggplot(data = subset(StateAffil,
                              subset = Affiliation %in% StateAffilSubset),
-               mapping = aes(x = as.factor(Affiliation),
-                             fill = Affiliation,
-                             color = Affiliation)) +
-  geom_density(fill = "darkblue",
-              alpha = 0.3) +
-  xlab("# Of Affiliations") +
-  ylab("") +
+               mapping = aes(x = as.factor(State),
+                             y = as.factor(Affiliation),
+                             group = as.factor(Affiliation),
+                             fill = as.factor(Affiliation))) +
+  geom_density_ridges(scale = 3,
+                      rel_min_height = 0.01) +
+  scale_fill_brewer(palette = "Blues") +
+  guides(fill = guide_legend(title = "States")) +
+  xlab("") +
+  ylab("# Of Affiliations") +
   theme_minimal() +
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 45,
                                    hjust = 1)) +
   expand_limits(x = c(-4,20)) +
+  scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
   ggtitle("U.S. Governor Party Affiliation By State")
    
 fig3
@@ -868,7 +859,7 @@ fig4 <- Governors %>%
            alpha = 0.5) +
   geom_text(aes(label = x),
             check_overlap = TRUE,
-            size = 2.7,
+            size = 2,
             hjust = 1,
             nudge_y = 2) +
   coord_flip() +
@@ -955,12 +946,12 @@ fig5
 
 <br/>
 
-## _What are some visual patterns ?_
+## _What are some visual patterns?_
 <br/>
 
 #### figure.6(s)
 
-```{r qst6, out.width="100%", out.height="100%"}
+```{r qst6, message=FALSE, warning=FALSE, out.width="100%"}
 #........... color scheme ................................
 politicalBlues <- colorRampPalette(brewer.pal(9, "Blues"))(2587)
 #........... subset ................................
@@ -971,8 +962,6 @@ MA_SD <- c("Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri",
            "South Carolina", "South Dakota")
 #........... color scheme ................................
 politicalBlues34 <- colorRampPalette(brewer.pal(9, "Blues"))(34)
-
-
 #........... graph ................................
 fig6 <- ggplot(GovernorTermDates,
                aes(x = as.factor(Affiliation),
@@ -995,12 +984,33 @@ fig6 <- ggplot(GovernorTermDates,
   scale_y_discrete(guide = guide_axis(check.overlap = TRUE)) +
   scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
   ggtitle("U.S. Governor Party Affiliations by State")
-  
+
 fig6
-
-
 #........... graph ................................
-fig6b <- ggplot(data = subset(GovernorTermDates,
+fig6b <- ggplot(GovernorTermDates,
+               aes(x = as.factor(Affiliation),
+                   y = as.factor(State),
+                   group = Affiliation,
+                   fill = "#69a2ff")) +
+  geom_density_ridges2(aes(point_fill = "#1d3a69"),
+                      color = "darkblue",
+                      rel_min_height = 0.07,
+                      jittered_points = TRUE,
+                      position = "raincloud",
+                      alpha = 0.7) +
+  xlab("Parties") +
+  ylab("") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45,
+                                   hjust = 1)) +
+  scale_y_discrete(guide = guide_axis(check.overlap = TRUE)) +
+  scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
+  ggtitle("Party Affiliations: Massachusetts to South Dakota")
+
+fig6b
+#........... graph ................................
+fig6c <- ggplot(data = subset(GovernorTermDates,
                                  subset = State %in% MA_SD),
                    mapping = aes(x = as.factor(Affiliation),
                                  y = as.factor(State),
@@ -1021,110 +1031,31 @@ fig6b <- ggplot(data = subset(GovernorTermDates,
         axis.text.x = element_text(angle = 45,
                                    hjust = 1)) +
   scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
-  ggtitle("U.S. Governor Party Affiliations by State")
-   
-fig6b
+  ggtitle("Massachusetts to South Dakota Affiliation Pattern")
 
-
-#........... graph ................................
-fig6c <- ggplot(GovernorTermDates,
-               aes(x = as.factor(Affiliation),
-                   y = as.factor(State),
-                   group = Affiliation,
-                   fill = "#69a2ff")) +
-  geom_density_ridges2(aes(point_fill = "#1d3a69"),
-                      color = "darkblue",
-                      rel_min_height = 0.07,
-                      jittered_points = TRUE,
-                      position = "raincloud",
-                      alpha = 0.7) +
-  xlab("Parties") +
-  ylab("") +
-  theme_minimal() +
-  theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45,
-                                   hjust = 1)) +
-  scale_y_discrete(guide = guide_axis(check.overlap = TRUE)) +
-  scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
-  ggtitle("U.S. Governor Party Affiliations by State")
-  
 fig6c
 ```
+<br/>
 
-
-```{r qst6_plot, out.width="100%"}
-#............. color palette ..................
-# political6 <- colorRampPalette(paletteer_c("ggthemes::Red-Blue-White Diverging", 30))(34)
-#.......... graph ...................
-# fig6 <- ggplot(AffiliationPattern,
-#                  aes(x = State,
-#                      y = CountAffil)) +
-#   xlab("Political Affiliation Size By State") +
-#   ylab("Affiliation Count") +
-#   theme_minimal(base_size = 11) +
-#   theme(panel.grid.major.x = element_blank(),
-#         panel.grid.minor = element_blank()) +
-#   theme(axis.text.x = element_text(angle = 45,
-#                                    hjust = 1))
-# 
-# fig6 +
-#   geom_point(aes(color = Affiliation,
-#                  size = CountAffil),
-#              alpha = 1/3) +
-#   scale_size_area(guide = "none",
-#                   max_size = 11) +
-#   scale_color_manual(values = political6) +
-#   scale_x_discrete(expand = c(0.045, 0.045)) +
-#   ylim(0, 75) +
-#   theme(legend.position = "none") +
-#   ggtitle("U.S Governors Party Affiliations")
-```
-
-
-```{r qst6_Month}
-#.............. month table ...................................
-# AffilMonthlyPattern <- AffiliationPattern %>% 
-#   group_by(State, Affiliation, CountAffil) %>% 
-#   summarise(MonthIn = format(as.Date(paste0(StateGov_DF_cleaned$took_office),
-#                                      format = "%Y-%m-%d"),
-#                              "%B"),   # Full month name
-#             MonthOut = format(as.Date(paste0(StateGov_DF_cleaned$left_office),
-#                                       format = "%Y-%m-%d"),
-#                               "%B"),
-#             Months = paste(MonthIn, "-", MonthOut),
-#             .groups = "rowwise") %>% 
-#   arrange() %>% 
-#   ungroup()
-#................. remove duplicates .....................................
-# AffilMonthlyPattern[!duplicated(AffilMonthlyPattern), ] -> AffilMonthlyPattern
-#................. factor .........................
-# AffilMonthlyPattern$Months <- factor(AffilMonthlyPattern$Months)
-```
-
-
-```{r qst6Month_plot, out.width="100%"}
-# fig6b <- ggplot(AffilMonthlyPattern,
-#                  aes(x = Affiliation,
-#                      y = CountAffil)) +
-#   xlab("") +
-#   ylab("Affiliation Count") +
-#   theme_minimal(base_size = 11) +
-#   theme(panel.grid.major.x = element_blank(),
-#         panel.grid.minor = element_blank()) +
-#   theme(axis.text.x = element_text(angle = 45,
-#                                    hjust = 1))
-# 
-# fig6b +
-#   geom_boxplot() +
-#   geom_point(aes(color = Affiliation,
-#                  size = CountAffil),
-#              alpha = 1/3) +
-#   scale_size_area() +
-#   scale_x_discrete(expand = c(0.03, 0.03)) +
-#   scale_color_manual(values = political6) +
-#   ylim(0, 65) +
-#   theme(legend.position = "none") +
-#   ggtitle("U.S Governors Monthly")
+```{r qst6_Month, message=FALSE, warning=FALSE, out.width="100%"}
+GovernorTermDates %>% 
+  select(Affiliation,
+         Governor,
+         State,
+         Sworn_In_Month,
+         Served) %>% 
+  gather(-Served,
+         State,
+         Sworn_In_Month,
+         key = "Region",
+         value = "value") %>% 
+  ggplot(aes(x = value,
+             y = Served,
+             color = Served)) +
+  geom_point(fill = "darkblue",
+             alpha = 0.5) +
+  scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
+  facet_wrap(~ Region, scales = "free")
 ```
 <br/>
 
@@ -1132,11 +1063,11 @@ fig6c
 
 
 <br/>
-***
+
 
 ## ANALYSIS
 <br/>
-***
+
 
 SESSION INFO
 
