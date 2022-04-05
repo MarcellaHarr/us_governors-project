@@ -602,7 +602,59 @@ It would make sense that the lower the seat number the higher the governor count
 ## _What is the earliest inaugural date?_ 
 <br/>
 
-DATAFRAME
+#### ORIGINAL DATASET'S "ERRORS"
+
+Before, visiting which governor had the shortest tenure let's look at the original dataset.
+
+As you can see there are negative served days which was corrected above under the, replace dates section, but I've add an extra syntax with the original data set to show these errors.
+
+
+```{r qst6_errors}
+#..... copy of original dataframe ...........................
+StateGovErrors_df %>%
+  select(governor_full_name,
+         took_office,
+         left_office) %>% 
+  mutate(took_office = str_squish(took_office),
+         left_office = str_squish(left_office),
+         took_office = as.Date(took_office,
+                               format = "%B %d, %Y"),
+         left_office = as.Date(left_office,
+                               format = "%B %d, %Y")) -> StateGovErrors_df
+
+#.............. table ........................
+GovInaugErrors <- StateGovErrors_df %>%
+  group_by("Governor" = as.factor(governor_full_name),
+           "Entered" = took_office,
+           "Left" = left_office) %>% 
+  summarise("Served" = difftime(
+              Left,
+              Entered,
+              units = c("days")),
+            .groups = "keep") %>%
+  ungroup() %>% 
+  arrange(Served) %>% 
+  kbl() %>% 
+  kable_classic("hover",
+                "condensed",
+                full_width = F,
+                html_font = "Optima") %>% 
+  row_spec(0, bold = TRUE) %>% 
+  row_spec(1, bold = TRUE, color = "white", background = "#F8BEB0") %>% 
+  row_spec(2, bold = TRUE, color = "white", background = "#F7B0A3") %>% 
+  row_spec(3, bold = TRUE, color = "white", background = "#F49489") %>% 
+  row_spec(4, bold = TRUE, color = "white", background = "#F17970") %>% 
+  row_spec(5, bold = TRUE, color = "white", background = "#ED5851") %>% 
+  row_spec(6, bold = TRUE, color = "white", background = "#EA332F") %>% 
+  row_spec(7, bold = TRUE, color = "white", background = "#E60D0C") %>% 
+  row_spec(8, bold = TRUE, color = "white", background = "#CB0002") %>% 
+  scroll_box(height = "300px")
+
+GovInaugErrors
+```
+<br/>
+
+EARLIEST INAUGURAL DATAFRAME
 ```{r qst2}
 GovernorTermDates <- StateGov_DF_cleaned %>%
   group_by(State = state_full_name) %>% 
@@ -695,7 +747,7 @@ fig2 <- ggplot(GovernorTermDates,
   xlab("Entered") +
   ylab("Left") +
   theme_minimal() +
-  ggtitle("U.S. Governors' Earlieast Tenures")
+  ggtitle("Earliest Governor Tenures")
 
 fig2
 ```
@@ -925,88 +977,6 @@ fig5
 The `Democratic` party with **1077** and the `Republican` party with **928** has the most governors.
 
 <br/>
-
-## _Which governor had the shortest term served?_
-
-#### ORIGINAL DATASET'S "ERRORS"
-
-Before, visiting which governor had the shortest tenure let's look at the original dataset.
-
-As you can see there are negative served days which was corrected above under the, replace dates section, but I've add an extra syntax with the original data set to show these errors.
-
-```{r qst6_errors}
-#..... copy of original dataframe ...........................
-StateGovErrors_df %>%
-  select(governor_full_name,
-         took_office,
-         left_office) %>% 
-  mutate(took_office = str_squish(took_office),
-         left_office = str_squish(left_office),
-         took_office = as.Date(took_office,
-                               format = "%B %d, %Y"),
-         left_office = as.Date(left_office,
-                               format = "%B %d, %Y")) -> StateGovErrors_df
-
-#.............. table ........................
-GovInaugErrors <- StateGovErrors_df %>%
-  group_by("Governor" = as.factor(governor_full_name),
-           "Entered" = took_office,
-           "Left" = left_office) %>% 
-  summarise("Served" = difftime(
-              Left,
-              Entered,
-              units = c("days")),
-            .groups = "keep") %>%
-  ungroup() %>% 
-  arrange(Served) %>% 
-  kbl() %>% 
-  kable_classic("hover",
-                "condensed",
-                full_width = F,
-                html_font = "Optima") %>% 
-  row_spec(0, bold = TRUE) %>% 
-  row_spec(1, bold = TRUE, color = "white", background = "#F8BEB0") %>% 
-  row_spec(2, bold = TRUE, color = "white", background = "#F7B0A3") %>% 
-  row_spec(3, bold = TRUE, color = "white", background = "#F49489") %>% 
-  row_spec(4, bold = TRUE, color = "white", background = "#F17970") %>% 
-  row_spec(5, bold = TRUE, color = "white", background = "#ED5851") %>% 
-  row_spec(6, bold = TRUE, color = "white", background = "#EA332F") %>% 
-  row_spec(7, bold = TRUE, color = "white", background = "#E60D0C") %>% 
-  row_spec(8, bold = TRUE, color = "white", background = "#CB0002") %>% 
-  scroll_box(height = "300px")
-
-GovInaugErrors
-```
-<br/>
-
-```{r qst6_Table}
-GovernorTermDates[order(GovernorTermDates$Served), ] -> GovernorTermDates
-
-GovernorTermDates$Served_z <- round(
-  (GovernorTermDates$Served - mean(GovernorTermDates$Served)) / sd(GovernorTermDates$Served), 2)
-
-# https://rpubs.com/ageek/ggplot-adv-part1
-```
-<br/>
-
-#### answer
-
-
-<br/>
-
-## _What are some visual patterns?_
-<br/>
-
-Central states but mostly Eastern states, excluding Pennsylvania, West Virginia, and Florida, seem to have the most Governors.
-
-
-<br/>
-<br/>
-
-
-## ANALYSIS
-<br/>
-
 
 SESSION INFO
 
