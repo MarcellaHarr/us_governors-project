@@ -2,6 +2,9 @@
 *.Rproj linguist-language=R
 *.Rmd linguist-language=R
 
+# Detect paths
+US_Governors/ linguist-detectable=true
+
 # Overrides
 *.nb.html linguist-vendored
 
