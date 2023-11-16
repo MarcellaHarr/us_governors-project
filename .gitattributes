@@ -1,12 +1,15 @@
-# Identify the langugae
+# Identify the language in the root repository
 *.Rproj linguist-language=R
 *.Rmd linguist-language=R
+*.R linguist-language=R
 
-# Detect paths
-US_Governors/ linguist-detectable=true
+# Detect paths in the US_Governors subfolder
+US_Governors/*.R linguist-language=R
+US_Governors/*.Rmd linguist-language=R
+US_Governors/*.Rproj linguist-language=R
+
+# Detect paths globally
+* linguist-detectable=true
 
 # Overrides
 *.nb.html linguist-vendored
-
-# Detect other languages
-* linguist-detectable=true
