@@ -1,16 +1,32 @@
-# Identify the language in the root repository
+# .gitattributes for an R project
+
+# Source files
+# ============
+*.Rdata binary
+*.RData binary
+*.rda   binary
+*.rdb   binary
+*.rds   binary
+*.Rd    text
+*.Rdx   binary
+*.Rmd   text
+*.R     text
+*.Rproj text
+*.[Rr]md linguist-detectable
+
+# R Markdown generated HTML
+*.nb.html linguist-vendored
+
+# Identify the language
+*.R linguist-language=R
 *.Rproj linguist-language=R
 *.Rmd linguist-language=R
-*.R linguist-language=R
 
-# Detect paths in the US_Governors subfolder
+# Detect paths
 US_Governors/*.R linguist-language=R
 US_Governors/*.Rmd linguist-language=R
 US_Governors/*.Rproj linguist-language=R
 US_Governors/ linguist-detectable=true
 
-# Detect paths globally
+# Detect other languages
 * linguist-detectable=true
-
-# Overrides
-*.nb.html linguist-vendored
